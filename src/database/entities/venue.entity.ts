@@ -24,7 +24,7 @@ export class Venue {
     type: 'point',
     spatialFeatureType: 'Point',
     srid: 4326,
-    nullable: true,
+    nullable: false,
   })
   @Index({ spatial: true })
   locationCoordinates: string;
