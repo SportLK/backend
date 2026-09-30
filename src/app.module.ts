@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ALL_ENTITIES } from './database/entities';
+import { VenuesModule } from './venues/venues.module';
 
 @Module({
   imports: [
@@ -31,6 +32,9 @@ import { ALL_ENTITIES } from './database/entities';
         charset: 'utf8mb4_unicode_ci',
       }),
     }),
+
+    // Member 4 Modules
+    VenuesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
