@@ -12,6 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { MatchesService } from './matches.service';
+import { MatchesGateway } from './matches.gateway';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { UpdateMatchStatusDto } from './dto/update-match-status.dto';
 import { UpdateScoreDto } from './dto/update-score.dto';
@@ -19,7 +20,10 @@ import { MatchQueryDto } from './dto/match-query.dto';
 
 @Controller('matches')
 export class MatchesController {
-  constructor(private readonly matchesService: MatchesService) {}
+  constructor(
+    private readonly matchesService: MatchesService,
+    private readonly matchesGateway: MatchesGateway,
+  ) {}
 
   /**
    * POST /api/v1/matches
@@ -63,11 +67,14 @@ export class MatchesController {
    * Update match lifecycle state (SCHEDULED -> LIVE -> COMPLETED)
    */
   @Patch(':id/status')
-  updateStatus(
+  async updateStatus(
     @Param('id') id: string,
     @Body() updateDto: UpdateMatchStatusDto,
   ) {
-    return this.matchesService.updateStatus(id, updateDto);
+    const updatedMatch = await this.matchesService.updateStatus(id, updateDto);
+    // Broadcast status change via WebSocket
+    this.matchesGateway.broadcastStatusUpdate(id, updatedMatch);
+    return updatedMatch;
   }
 
   /**
@@ -75,11 +82,14 @@ export class MatchesController {
    * Update current score display and ball-by-ball JSON
    */
   @Put(':id/score')
-  updateScore(
+  async updateScore(
     @Param('id') id: string,
     @Body() scoreDto: UpdateScoreDto,
   ) {
-    return this.matchesService.updateScore(id, scoreDto);
+    const updatedScore = await this.matchesService.updateScore(id, scoreDto);
+    // Broadcast score change via WebSocket to all spectators
+    this.matchesGateway.broadcastScoreUpdate(id, updatedScore);
+    return updatedScore;
   }
 
   /**
