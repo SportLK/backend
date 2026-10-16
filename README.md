@@ -1,38 +1,35 @@
-# 🏟️ SportLK Backend
+# SportLK API
 
-<p align="center">
-  <strong>The API and data layer for a connected Sri Lankan sports community.</strong>
-</p>
+NestJS API for identity, player profiles, roles, community content, moderation, and notifications. Team, roster, tournament, and event data belong to their own platform modules. This API grants approved workspace roles and exposes the user/community information those modules can use.
 
-SportLK brings players, teams, event organizers, and spectators together to discover sports events and manage tournaments in one place. This repository is reserved for the backend service used by the SportLK applications.
+## Run locally
 
-## 🧰 Technology
+Requirements: Node.js 20+, MySQL 8+, and npm.
 
-| Layer | Technology |
-| --- | --- |
-| API | NestJS |
-| Database | MySQL |
-| Mobile client | [React Native](https://github.com/SportLK/mobile-frontend) |
-| Admin website | [Next.js](https://github.com/SportLK/web-admin-frontend) |
+1. Create a MySQL database named `sportlk` (or set `DB_NAME`).
+2. Copy `.env.example` to `.env` and set your database connection and JWT secrets.
+3. Run `npm install`, then `npm run start:dev`.
+4. The API listens on `http://localhost:3000/api/v1`.
 
-The mobile app will use the NestJS API to work with platform data. Database credentials and MySQL access belong on the server side.
+The development configuration creates tables from the entities. Production disables TypeORM schema synchronization; use reviewed migrations for production schema changes.
 
-## ✨ Planned capabilities
+Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and optionally `ADMIN_NAME` to create the first administrator during startup. If those values are absent, registration only creates player accounts and admin-only workflows stay protected.
 
-- User profiles and role-based workflows for players, team managers, organizers, and administrators
-- Sports event discovery, registrations, and ticket bookings
-- Team creation, roster management, and tournament participation
-- Match scheduling, result updates, rankings, and statistics
-- Community posts, moderation, and administrative oversight
+## API surface
 
-These describe the project scope; they are not a claim that the features are already implemented.
+All routes except registration, login, and refresh require `Authorization: Bearer <accessToken>`. Access tokens last 15 minutes. Refresh tokens last 30 days, are stored as a hash, and rotate when refreshed.
 
-## 🚧 Repository status
+| Area | Routes | Access |
+| --- | --- | --- |
+| Authentication | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` | Public sign-in; logout requires a token |
+| Profiles and accounts | `GET /users/me`, `PATCH /users/me`, `GET /users`, `PATCH /users/:id/status` | Self-service; account management is admin-only |
+| Communities and feed | `GET /communities`, `POST /communities`, `POST/DELETE /communities/:id/join`, `GET/POST /community/posts`, post likes/comments and moderation | Signed-in members; hiding posts is admin-only |
+| Role applications | `POST /role-applications`, `GET /role-applications/mine`, `GET /role-applications/pending`, `PATCH /role-applications/:id/review` | Applicants; queue and decisions are admin-only |
+| Reports | `POST /reports`, `GET /reports`, `PATCH /reports/:id` | Submitters; review is admin-only |
+| Notifications | `GET /notifications`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all` | Own notifications only |
 
-This repository currently contains this README only. NestJS source code, MySQL schema or migrations, environment configuration, and runnable scripts have not been added yet. Setup instructions will be added with the initial backend scaffold.
+Approving a Team Manager or Tournament Organizer application adds that role to the user and creates a notification. The team and tournament modules can read `user.roles` to decide which workspaces to expose.
 
-## 🔗 SportLK repositories
+## Environment variables
 
-- [Backend API](https://github.com/SportLK/backend)
-- [Mobile app](https://github.com/SportLK/mobile-frontend)
-- [Admin website](https://github.com/SportLK/web-admin-frontend)
+See `.env.example`. Use separate random JWT secrets in deployed environments. Set `CORS_ORIGIN` to a comma-separated allowlist in production; development allows local origins by default.
