@@ -320,6 +320,7 @@ export class VenuesService {
     if (province !== undefined) { updates.push('province = ?'); params.push(province); }
     if (contactPhone !== undefined) { updates.push('contact_phone = ?'); params.push(contactPhone); }
     if (hourlyBaseRate !== undefined) { updates.push('hourly_base_rate = ?'); params.push(hourlyBaseRate); }
+    if ((updateVenueDto as any).isActive !== undefined) { updates.push('is_active = ?'); params.push((updateVenueDto as any).isActive ? 1 : 0); }
 
     if (latitude !== undefined && longitude !== undefined) {
       updates.push('location_coordinates = ST_SRID(POINT(?, ?), 4326)');
