@@ -5,6 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ALL_ENTITIES } from './database/entities';
 import { VenuesModule } from './venues/venues.module';
+import { MatchesModule } from './matches/matches.module';
+import { StatisticsModule } from './statistics/statistics.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { VenuesModule } from './venues/venues.module';
 
     // Member 4 Modules
     VenuesModule,
+    MatchesModule,
+    StatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

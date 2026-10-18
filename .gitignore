@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 ﻿# Compiled output
 dist/
 node_modules/
@@ -18,6 +17,3 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
-=======
-node_modules
->>>>>>> Stashed changes
