@@ -14,6 +14,7 @@ import {
   InvitationStatus,
 } from '../database/entities/team-invitation.entity';
 import { TeamChallenge, ChallengeStatus } from '../database/entities/team-challenge.entity';
+import { TeamReport, TeamReportReason, TeamReportStatus } from '../database/entities/team-report.entity';
 import { User, BaseRole, ActiveWorkspace } from '../database/entities/user.entity';
 import { SportType } from '../database/entities/user-sports-interest.entity';
 
@@ -25,6 +26,9 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { CreateJoinRequestDto } from './dto/create-join-request.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { RespondChallengeDto } from './dto/respond-challenge.dto';
+import { SuspendTeamDto } from './dto/suspend-team.dto';
+import { CreateTeamReportDto } from './dto/create-team-report.dto';
+import { ResolveTeamReportDto } from './dto/resolve-team-report.dto';
 
 @Injectable()
 export class TeamsService {
@@ -40,6 +44,9 @@ export class TeamsService {
 
     @InjectRepository(TeamChallenge)
     private readonly challengeRepository: Repository<TeamChallenge>,
+
+    @InjectRepository(TeamReport)
+    private readonly reportRepository: Repository<TeamReport>,
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -509,7 +516,359 @@ export class TeamsService {
   }
 
   // =========================================================================
-  // 6. DEVELOPMENT SEEDING (Helper for immediate end-to-end testing)
+  // 6. ADMIN WORKFLOWS (MEMBER 2 ADMIN DASHBOARD)
+  // =========================================================================
+
+  private formatMember(m: TeamMember) {
+    const roleMap: Record<string, string> = {
+      CAPTAIN: 'Captain',
+      VICE_CAPTAIN: 'Vice-Captain',
+      FORWARD: 'Forward',
+      MIDFIELDER: 'Midfielder',
+      DEFENDER: 'Defender',
+      GOALKEEPER: 'Goalkeeper',
+      SQUAD_PLAYER: 'Squad Player',
+    };
+    return {
+      id: m.id,
+      fullName: m.user?.fullName || `Player ${m.userId}`,
+      role: roleMap[m.memberRole] || 'Squad Player',
+      jerseyNumber: m.jerseyNumber,
+      email: m.user?.email || `player${m.userId}@sportlk.com`,
+      phoneNumber: m.user?.phoneNumber || '+94 77 000 0000',
+      joinedDate: m.joinedAt
+        ? new Date(m.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : 'Oct 2026',
+      status: 'Active',
+    };
+  }
+
+  async getAdminTeams(params?: {
+    sportType?: SportType;
+    status?: TeamStatus;
+    city?: string;
+    search?: string;
+  }): Promise<any[]> {
+    const query = this.teamRepository
+      .createQueryBuilder('team')
+      .leftJoinAndSelect('team.manager', 'manager')
+      .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.user', 'memberUser')
+      .orderBy('team.createdAt', 'DESC');
+
+    if (params?.sportType) {
+      query.andWhere('team.sportType = :sportType', { sportType: params.sportType });
+    }
+
+    if (params?.status) {
+      query.andWhere('team.status = :status', { status: params.status });
+    }
+
+    if (params?.city) {
+      query.andWhere('team.primaryLocationCity LIKE :city', { city: `%${params.city}%` });
+    }
+
+    if (params?.search) {
+      query.andWhere(
+        '(team.teamName LIKE :search OR manager.fullName LIKE :search OR team.primaryLocationCity LIKE :search)',
+        { search: `%${params.search}%` },
+      );
+    }
+
+    const teams = await query.getMany();
+
+    return teams.map((team) => ({
+      id: team.id,
+      name: team.teamName,
+      location: team.primaryLocationCity || 'Sri Lanka',
+      sport: team.sportType
+        ? team.sportType.charAt(0) + team.sportType.slice(1).toLowerCase()
+        : 'Futsal',
+      sportType: team.sportType,
+      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : 'Active',
+      statusEnum: team.status,
+      membersCount: team.members ? team.members.length : 0,
+      matchesPlayed: 18,
+      winsCount: 12,
+      bio: team.teamBio || '',
+      initials: team.teamName
+        ? team.teamName
+            .split(' ')
+            .map((w) => w[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+        : 'TM',
+      createdAt: team.createdAt
+        ? new Date(team.createdAt).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        : '2026',
+      manager: {
+        id: team.manager?.id || team.managerId,
+        name: team.manager?.fullName || 'Manager',
+        email: team.manager?.email || '',
+        phone: team.manager?.phoneNumber || '+94 77 123 4567',
+        joinedDate: team.manager?.createdAt
+          ? new Date(team.manager.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              year: 'numeric',
+            })
+          : 'Jan 2026',
+      },
+      suspensionDetails:
+        team.status === TeamStatus.SUSPENDED
+          ? {
+              suspendedAt: team.suspendedAt
+                ? new Date(team.suspendedAt).toLocaleDateString('en-US', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Recently',
+              suspendedBy: team.suspendedBy || 'SportLK Admin',
+              reason: team.suspensionReason || 'Violation of code of conduct',
+              duration: team.suspensionDuration || '30 Days',
+              notes: team.suspensionNotes || '',
+            }
+          : undefined,
+      squad: team.members ? team.members.map((m) => this.formatMember(m)) : [],
+    }));
+  }
+
+  async getAdminTeamDetail(id: string): Promise<any> {
+    const team = await this.teamRepository.findOne({
+      where: { id },
+      relations: ['manager', 'members', 'members.user', 'reports'],
+    });
+
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${id} not found`);
+    }
+
+    return {
+      id: team.id,
+      name: team.teamName,
+      location: team.primaryLocationCity || 'Sri Lanka',
+      sport: team.sportType
+        ? team.sportType.charAt(0) + team.sportType.slice(1).toLowerCase()
+        : 'Futsal',
+      sportType: team.sportType,
+      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : 'Active',
+      statusEnum: team.status,
+      membersCount: team.members ? team.members.length : 0,
+      matchesPlayed: 18,
+      winsCount: 12,
+      bio: team.teamBio || '',
+      initials: team.teamName
+        ? team.teamName
+            .split(' ')
+            .map((w) => w[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+        : 'TM',
+      createdAt: team.createdAt
+        ? new Date(team.createdAt).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        : '2026',
+      manager: {
+        id: team.manager?.id || team.managerId,
+        name: team.manager?.fullName || 'Manager',
+        email: team.manager?.email || '',
+        phone: team.manager?.phoneNumber || '+94 77 123 4567',
+        joinedDate: team.manager?.createdAt
+          ? new Date(team.manager.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              year: 'numeric',
+            })
+          : 'Jan 2026',
+      },
+      suspensionDetails:
+        team.status === TeamStatus.SUSPENDED
+          ? {
+              suspendedAt: team.suspendedAt
+                ? new Date(team.suspendedAt).toLocaleDateString('en-US', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Recently',
+              suspendedBy: team.suspendedBy || 'SportLK Admin',
+              reason: team.suspensionReason || 'Violation of code of conduct',
+              duration: team.suspensionDuration || '30 Days',
+              notes: team.suspensionNotes || '',
+            }
+          : undefined,
+      squad: team.members ? team.members.map((m) => this.formatMember(m)) : [],
+    };
+  }
+
+  async suspendTeam(id: string, dto: SuspendTeamDto): Promise<any> {
+    const team = await this.teamRepository.findOne({ where: { id } });
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${id} not found`);
+    }
+
+    team.status = TeamStatus.SUSPENDED;
+    team.suspensionReason = dto.reason;
+    team.suspensionDuration = dto.duration || '30 Days';
+    team.suspensionNotes = dto.notes || '';
+    team.suspendedAt = new Date();
+    team.suspendedBy = dto.adminId || 'SportLK Admin';
+
+    await this.teamRepository.save(team);
+    return this.getAdminTeamDetail(id);
+  }
+
+  async reactivateTeam(id: string): Promise<any> {
+    const team = await this.teamRepository.findOne({ where: { id } });
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${id} not found`);
+    }
+
+    team.status = TeamStatus.ACTIVE;
+    team.suspensionReason = null as any;
+    team.suspensionDuration = null as any;
+    team.suspensionNotes = null as any;
+    team.suspendedAt = null as any;
+    team.suspendedBy = null as any;
+
+    await this.teamRepository.save(team);
+    return this.getAdminTeamDetail(id);
+  }
+
+  async getTeamReports(status?: TeamReportStatus): Promise<any[]> {
+    const query = this.reportRepository
+      .createQueryBuilder('report')
+      .leftJoinAndSelect('report.team', 'team')
+      .leftJoinAndSelect('report.reporter', 'reporter')
+      .orderBy('report.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('report.status = :status', { status });
+    }
+
+    const reports = await query.getMany();
+
+    const reasonFormatMap: Record<string, string> = {
+      MISLEADING_INFORMATION: 'Misleading information',
+      ROSTER_ELIGIBILITY_DISPUTE: 'Roster eligibility dispute',
+      UNSPORTSMANLIKE_CONDUCT: 'Unsportsmanlike conduct',
+      INACTIVE_FORFEIT: 'Inactive / Forfeit',
+      HARASSMENT: 'Harassment',
+      OTHER: 'Other Concern',
+    };
+
+    const statusFormatMap: Record<string, string> = {
+      OPEN: 'Open',
+      IN_REVIEW: 'In Review',
+      RESOLVED: 'Resolved',
+      DISMISSED: 'Dismissed',
+    };
+
+    return reports.map((r) => ({
+      id: r.id,
+      reportNumber: r.reportNumber,
+      teamId: r.teamId,
+      teamName: r.team?.teamName || `Team #${r.teamId}`,
+      reportedBy: r.reporter?.fullName || `User #${r.reporterId}`,
+      reporterRole: r.reporter?.isTeamManager ? 'Team Manager' : 'Player',
+      reason: reasonFormatMap[r.reason] || r.reason,
+      reasonEnum: r.reason,
+      details: r.details,
+      receivedDate: r.createdAt
+        ? new Date(r.createdAt).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        : 'Recent',
+      status: statusFormatMap[r.status] || r.status,
+      statusEnum: r.status,
+      severity: r.severity || 'Medium',
+      resolutionNotes: r.resolutionNotes,
+    }));
+  }
+
+  async createTeamReport(dto: CreateTeamReportDto): Promise<TeamReport> {
+    const team = await this.teamRepository.findOne({ where: { id: dto.teamId } });
+    if (!team) {
+      throw new NotFoundException(`Team with ID ${dto.teamId} not found`);
+    }
+
+    const count = await this.reportRepository.count();
+    const reportNumber = `TR-${101 + count}`;
+
+    const report = this.reportRepository.create({
+      reportNumber,
+      teamId: dto.teamId,
+      reporterId: dto.reporterId,
+      reason: dto.reason,
+      details: dto.details,
+      severity: dto.severity || 'Medium',
+      status: TeamReportStatus.OPEN,
+    });
+
+    return this.reportRepository.save(report);
+  }
+
+  async resolveTeamReport(id: string, dto: ResolveTeamReportDto): Promise<any> {
+    const report = await this.reportRepository.findOne({ where: { id }, relations: ['team'] });
+    if (!report) {
+      throw new NotFoundException(`Team report with ID ${id} not found`);
+    }
+
+    report.status = dto.status;
+    if (dto.resolutionNotes !== undefined) report.resolutionNotes = dto.resolutionNotes;
+    if (dto.handledByAdminId !== undefined) report.handledByAdminId = dto.handledByAdminId;
+
+    await this.reportRepository.save(report);
+
+    if (dto.suspendTeam && report.teamId) {
+      await this.suspendTeam(report.teamId, {
+        reason: dto.suspensionReason || report.reason,
+        duration: dto.suspensionDuration || '30 Days',
+        notes: dto.resolutionNotes || 'Suspended via report resolution',
+      });
+    }
+
+    return this.getTeamReports();
+  }
+
+  async getTeamAnalytics(): Promise<any> {
+    const totalTeams = await this.teamRepository.count();
+    const activeTeams = await this.teamRepository.count({ where: { status: TeamStatus.ACTIVE } });
+    const suspendedTeams = await this.teamRepository.count({
+      where: { status: TeamStatus.SUSPENDED },
+    });
+    const totalMembers = await this.memberRepository.count();
+    const totalReports = await this.reportRepository.count();
+    const openReports = await this.reportRepository.count({
+      where: { status: TeamReportStatus.OPEN },
+    });
+
+    const avgSquadSize = totalTeams > 0 ? (totalMembers / totalTeams).toFixed(1) : '0';
+
+    return {
+      totalTeams,
+      activeTeams,
+      suspendedTeams,
+      totalMembers,
+      avgSquadSize,
+      complianceRate: totalTeams > 0 ? Math.round((activeTeams / totalTeams) * 100) : 100,
+      totalReports,
+      openReports,
+    };
+  }
+
+  // =========================================================================
+  // 7. DEVELOPMENT SEEDING (Helper for immediate end-to-end testing)
   // =========================================================================
 
   async seedDemoData(): Promise<{ success: boolean; message: string; data: any }> {
@@ -531,7 +890,7 @@ export class TeamsService {
       manager = await this.userRepository.save(manager);
     }
 
-    // 2. Create sample players
+    // 2. Create sample players & managers
     const samplePlayersData = [
       { name: 'Kavindu Perera', email: 'kavindu@sportlk.com' },
       { name: 'Chamath Silva', email: 'chamath@sportlk.com' },
@@ -540,6 +899,11 @@ export class TeamsService {
       { name: 'Sahan Wickramasinghe', email: 'sahan@sportlk.com' },
       { name: 'Dilshan Fernando', email: 'dilshan@sportlk.com' },
       { name: 'Nuwan Pradeep', email: 'nuwan@sportlk.com' },
+      { name: 'Ashen Bandara', email: 'ashen@sportlk.com' },
+      { name: 'Nimal Jayasinghe', email: 'nimal@sportlk.com' },
+      { name: 'Sahan Perera', email: 'sahan.p@sportlk.com' },
+      { name: 'Mahesh Theekshana', email: 'mahesh@sportlk.com' },
+      { name: 'Tharindu Fernando', email: 'tharindu@sportlk.com' },
     ];
 
     const players: User[] = [];
@@ -559,24 +923,92 @@ export class TeamsService {
       players.push(u);
     }
 
-    // 3. Create or find Primary Team (Colombo Strikers)
-    let team1 = await this.teamRepository.findOne({
-      where: { teamName: 'Colombo Strikers' },
-    });
-
-    if (!team1) {
-      team1 = this.teamRepository.create({
-        managerId: manager.id,
-        teamName: 'Colombo Strikers',
-        sportType: SportType.FUTSAL,
-        primaryLocationCity: 'Colombo',
-        teamBio:
-          'A Colombo-based squad united by a love for futsal. Training every Sunday at Colombo Sports Arena.',
+    // 3. Seed Teams (Colombo Strikers, Kandy United, Galle Warriors, Negombo FC, Colombo Kings, Moratuwa Ballers)
+    const teamsToCreate = [
+      {
+        name: 'Colombo Strikers',
+        manager: manager,
+        sport: SportType.FUTSAL,
+        city: 'Colombo',
+        bio: 'A Colombo-based squad united by a love for futsal. Training every Sunday at Colombo Sports Arena.',
         status: TeamStatus.ACTIVE,
-      });
-      team1 = await this.teamRepository.save(team1);
+      },
+      {
+        name: 'Kandy United',
+        manager: players[4], // Sahan Wickramasinghe
+        sport: SportType.FUTSAL,
+        city: 'Kandy',
+        bio: 'Central Province futsal champions 2025. Competing in the National Futsal League.',
+        status: TeamStatus.ACTIVE,
+      },
+      {
+        name: 'Galle Warriors',
+        manager: players[8], // Nimal Jayasinghe
+        sport: SportType.FUTSAL,
+        city: 'Galle',
+        bio: 'Southern coastal squad with premier tournament honors at Galle Indoor Complex.',
+        status: TeamStatus.ACTIVE,
+      },
+      {
+        name: 'Negombo FC',
+        manager: players[9], // Sahan Perera
+        sport: SportType.FUTSAL,
+        city: 'Negombo',
+        bio: 'Western coastal champions specializing in fast-paced 5-a-side indoor competitions.',
+        status: TeamStatus.ACTIVE,
+      },
+      {
+        name: 'Colombo Kings',
+        manager: players[10], // Mahesh Theekshana
+        sport: SportType.CRICKET,
+        city: 'Colombo',
+        bio: 'Premier club division weekend 10-overs cricket team playing across Colombo venues.',
+        status: TeamStatus.ACTIVE,
+      },
+      {
+        name: 'Moratuwa Ballers',
+        manager: players[11], // Tharindu Fernando
+        sport: SportType.FUTSAL,
+        city: 'Moratuwa',
+        bio: 'Suburban futsal squad currently under administrative disciplinary review.',
+        status: TeamStatus.SUSPENDED,
+        suspensionReason: 'Misleading information / Fake roster participant',
+        suspensionDuration: '30 Days',
+        suspensionNotes:
+          'Team fielded unregistered player during Western Province qualifier without organizer verification.',
+        suspendedAt: new Date('2026-10-05T10:00:00Z'),
+        suspendedBy: 'SportLK Admin',
+      },
+    ];
 
-      // Add Manager as Captain
+    const createdTeams: Team[] = [];
+    for (const t of teamsToCreate) {
+      let team = await this.teamRepository.findOne({ where: { teamName: t.name } });
+      if (!team) {
+        team = this.teamRepository.create({
+          managerId: t.manager.id,
+          teamName: t.name,
+          sportType: t.sport,
+          primaryLocationCity: t.city,
+          teamBio: t.bio,
+          status: t.status,
+          suspensionReason: (t as any).suspensionReason || null,
+          suspensionDuration: (t as any).suspensionDuration || null,
+          suspensionNotes: (t as any).suspensionNotes || null,
+          suspendedAt: (t as any).suspendedAt || null,
+          suspendedBy: (t as any).suspendedBy || null,
+        });
+        team = await this.teamRepository.save(team);
+      }
+      createdTeams.push(team);
+    }
+
+    const team1 = createdTeams[0]; // Colombo Strikers
+    const team2 = createdTeams[1]; // Kandy United
+
+    // 4. Populate Roster for Colombo Strikers
+    const team1MembersCount = await this.memberRepository.count({ where: { teamId: team1.id } });
+    if (team1MembersCount === 0) {
       await this.memberRepository.save(
         this.memberRepository.create({
           teamId: team1.id,
@@ -586,12 +1018,13 @@ export class TeamsService {
         }),
       );
 
-      // Add other players
       const rosterRoles = [
         { user: players[0], role: TeamMemberRole.SQUAD_PLAYER, jersey: 10 },
         { user: players[1], role: TeamMemberRole.SQUAD_PLAYER, jersey: 1 },
         { user: players[2], role: TeamMemberRole.VICE_CAPTAIN, jersey: 8 },
         { user: players[3], role: TeamMemberRole.SQUAD_PLAYER, jersey: 4 },
+        { user: players[4], role: TeamMemberRole.SQUAD_PLAYER, jersey: 6 },
+        { user: players[5], role: TeamMemberRole.SQUAD_PLAYER, jersey: 11 },
       ];
 
       for (const r of rosterRoles) {
@@ -604,23 +1037,6 @@ export class TeamsService {
           }),
         );
       }
-    }
-
-    // 4. Create Opponent Team (Kandy United)
-    let team2 = await this.teamRepository.findOne({
-      where: { teamName: 'Kandy United' },
-    });
-
-    if (!team2) {
-      team2 = this.teamRepository.create({
-        managerId: players[4].id, // Sahan as manager
-        teamName: 'Kandy United',
-        sportType: SportType.FUTSAL,
-        primaryLocationCity: 'Kandy',
-        teamBio: 'Central Province futsal champions 2025.',
-        status: TeamStatus.ACTIVE,
-      });
-      team2 = await this.teamRepository.save(team2);
     }
 
     // 5. Add pending Join Requests to Colombo Strikers
@@ -668,6 +1084,72 @@ export class TeamsService {
       );
     }
 
+    // 7. Seed Team Reports matching Figma 09 / Reports
+    const reportsCount = await this.reportRepository.count();
+    if (reportsCount === 0) {
+      const demoReports = [
+        {
+          reportNumber: 'TR-102',
+          teamId: team1.id,
+          reporterId: players[4].id,
+          reason: TeamReportReason.MISLEADING_INFORMATION,
+          details:
+            'Opponent roster list displayed a player who had not formally completed transfer verification.',
+          severity: 'Medium',
+          status: TeamReportStatus.OPEN,
+        },
+        {
+          reportNumber: 'TR-105',
+          teamId: createdTeams[5].id, // Moratuwa Ballers
+          reporterId: manager.id,
+          reason: TeamReportReason.ROSTER_ELIGIBILITY_DISPUTE,
+          details:
+            'Player was not registered on the SportLK platform before match start time.',
+          severity: 'High',
+          status: TeamReportStatus.IN_REVIEW,
+        },
+        {
+          reportNumber: 'TR-109',
+          teamId: createdTeams[3].id, // Negombo FC
+          reporterId: players[8].id,
+          reason: TeamReportReason.UNSPORTSMANLIKE_CONDUCT,
+          details:
+            'Dispute occurred during late substitution in 2nd half. Requested referee review of roster roles.',
+          severity: 'Low',
+          status: TeamReportStatus.RESOLVED,
+          resolutionNotes:
+            'Reviewed referee scorecard. Clarified substitution protocol with Negombo FC manager.',
+        },
+        {
+          reportNumber: 'TR-114',
+          teamId: createdTeams[2].id, // Galle Warriors
+          reporterId: players[9].id,
+          reason: TeamReportReason.INACTIVE_FORFEIT,
+          details:
+            'Team arrived 30 minutes after scheduled kickoff date for friendly challenge.',
+          severity: 'Low',
+          status: TeamReportStatus.DISMISSED,
+          resolutionNotes:
+            'Adverse weather conditions confirmed along Southern Expressway. Rescheduled challenge.',
+        },
+      ];
+
+      for (const dr of demoReports) {
+        await this.reportRepository.save(
+          this.reportRepository.create({
+            reportNumber: dr.reportNumber,
+            teamId: dr.teamId,
+            reporterId: dr.reporterId,
+            reason: dr.reason,
+            details: dr.details,
+            severity: dr.severity,
+            status: dr.status,
+            resolutionNotes: (dr as any).resolutionNotes || null,
+          }),
+        );
+      }
+    }
+
     return {
       success: true,
       message: 'Demo seed data for Member 2 Team & Squad Management created successfully',
@@ -675,6 +1157,7 @@ export class TeamsService {
         managerId: manager.id,
         teamId: team1.id,
         teamName: team1.teamName,
+        teamsCount: createdTeams.length,
       },
     };
   }
