@@ -7,6 +7,8 @@ import { ALL_ENTITIES } from './database/entities';
 import { VenuesModule } from './venues/venues.module';
 import { MatchesModule } from './matches/matches.module';
 import { StatisticsModule } from './statistics/statistics.module';
+import { OrganizersModule } from './organizers/organizers.module';
+import { TournamentsModule } from './tournaments/tournaments.module';
 
 @Module({
   imports: [
@@ -39,6 +41,10 @@ import { StatisticsModule } from './statistics/statistics.module';
     VenuesModule,
     MatchesModule,
     StatisticsModule,
+
+    // Member 3 Modules (Tournament & Organizer Management)
+    OrganizersModule,
+    TournamentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
