@@ -12,6 +12,7 @@ import { TeamMember } from './team-member.entity';
 import { TeamInvitation } from './team-invitation.entity';
 import { SportType } from './user-sports-interest.entity';
 import { TournamentRegistration } from './tournament-registration.entity';
+import { TeamReport } from './team-report.entity';
 
 export enum TeamStatus {
   ACTIVE = 'ACTIVE',
@@ -53,6 +54,21 @@ export class Team {
   })
   status: TeamStatus;
 
+  @Column({ name: 'suspension_reason', type: 'text', nullable: true })
+  suspensionReason: string;
+
+  @Column({ name: 'suspension_duration', length: 50, nullable: true })
+  suspensionDuration: string;
+
+  @Column({ name: 'suspension_notes', type: 'text', nullable: true })
+  suspensionNotes: string;
+
+  @Column({ name: 'suspended_at', type: 'timestamp', nullable: true })
+  suspendedAt: Date;
+
+  @Column({ name: 'suspended_by', length: 100, nullable: true })
+  suspendedBy: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -64,4 +80,7 @@ export class Team {
 
   @OneToMany(() => TournamentRegistration, (reg) => reg.team)
   tournamentRegistrations: TournamentRegistration[];
+
+  @OneToMany(() => TeamReport, (report) => report.team)
+  reports: TeamReport[];
 }
