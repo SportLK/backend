@@ -4,9 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ALL_ENTITIES } from './database/entities';
+<<<<<<< HEAD
 import { VenuesModule } from './venues/venues.module';
 import { MatchesModule } from './matches/matches.module';
 import { StatisticsModule } from './statistics/statistics.module';
+=======
+import { TeamsModule } from './teams/teams.module';
+>>>>>>> avishka-dev
 
 @Module({
   imports: [
@@ -35,10 +39,15 @@ import { StatisticsModule } from './statistics/statistics.module';
       }),
     }),
 
+<<<<<<< HEAD
     // Member 4 Modules
     VenuesModule,
     MatchesModule,
     StatisticsModule,
+=======
+    // Member 2: Team & Squad Management Module
+    TeamsModule,
+>>>>>>> avishka-dev
   ],
   controllers: [AppController],
   providers: [AppService],
