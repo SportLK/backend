@@ -9,6 +9,7 @@ import { Team } from './team.entity';
 import { TeamMember } from './team-member.entity';
 import { TeamInvitation } from './team-invitation.entity';
 import { TeamChallenge } from './team-challenge.entity';
+import { TeamReport } from './team-report.entity';
 import { Venue } from './venue.entity';
 import { VenueFacility } from './venue-facility.entity';
 import { VenueBooking } from './venue-booking.entity';
@@ -31,6 +32,7 @@ export * from './team.entity';
 export * from './team-member.entity';
 export * from './team-invitation.entity';
 export * from './team-challenge.entity';
+export * from './team-report.entity';
 export * from './venue.entity';
 export * from './venue-facility.entity';
 export * from './venue-booking.entity';
@@ -54,6 +56,7 @@ export const ALL_ENTITIES = [
   TeamMember,
   TeamInvitation,
   TeamChallenge,
+  TeamReport,
   Venue,
   VenueFacility,
   VenueBooking,
