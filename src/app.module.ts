@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MatchesModule } from './matches/matches.module';
+import { StatisticsModule } from './statistics/statistics.module';
+import { TeamsModule } from './teams/teams.module';
+import { VenuesModule } from './venues/venues.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { CommunityModule } from './community/community.module';
@@ -43,6 +47,10 @@ import { UsersModule } from './users/users.module';
     RoleApplicationsModule,
     ReportsModule,
     NotificationsModule,
+    TeamsModule,
+    VenuesModule,
+    MatchesModule,
+    StatisticsModule,
   ],
 })
 export class AppModule {}
