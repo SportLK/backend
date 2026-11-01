@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -7,6 +7,7 @@
 } from 'typeorm';
 import { Tournament } from './tournament.entity';
 import { Match } from './match.entity';
+import { Team } from './team.entity';
 
 @Entity('tournament_brackets')
 export class TournamentBracket {
@@ -23,16 +24,40 @@ export class TournamentBracket {
   @Column({ name: 'round_number', type: 'int' })
   roundNumber: number;
 
+  @Column({ name: 'round_name', type: 'varchar', length: 50, nullable: true })
+  roundName: string | null;
+
   @Column({ name: 'match_sequence_in_round', type: 'int' })
   matchSequenceInRound: number;
 
+  @Column({ name: 'team1_id', type: 'bigint', nullable: true })
+  team1Id: string | null;
+
+  @ManyToOne(() => Team, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'team1_id' })
+  team1: Team | null;
+
+  @Column({ name: 'team2_id', type: 'bigint', nullable: true })
+  team2Id: string | null;
+
+  @ManyToOne(() => Team, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'team2_id' })
+  team2: Team | null;
+
+  @Column({ name: 'winner_id', type: 'bigint', nullable: true })
+  winnerId: string | null;
+
+  @ManyToOne(() => Team, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'winner_id' })
+  winner: Team | null;
+
   @Column({ name: 'match_id', type: 'bigint', nullable: true })
-  matchId: string;
+  matchId: string | null;
 
   @ManyToOne(() => Match, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'match_id' })
-  match: Match;
+  match: Match | null;
 
   @Column({ name: 'next_bracket_id', type: 'bigint', nullable: true })
-  nextBracketId: string;
+  nextBracketId: string | null;
 }
