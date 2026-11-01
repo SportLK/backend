@@ -1,19 +1,6 @@
-﻿# Compiled output
-dist/
 node_modules/
-
-# Environment files
+dist/
 .env
-.env.local
-.env.*.local
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# OS Files
-.DS_Store
-Thumbs.db
-
+.env.*
+!.env.example
+*.tsbuildinfo

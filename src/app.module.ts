@@ -1,55 +1,56 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ALL_ENTITIES } from './database/entities';
-<<<<<<< HEAD
-import { VenuesModule } from './venues/venues.module';
 import { MatchesModule } from './matches/matches.module';
 import { StatisticsModule } from './statistics/statistics.module';
-=======
 import { TeamsModule } from './teams/teams.module';
->>>>>>> avishka-dev
+import { VenuesModule } from './venues/venues.module';
+import { AuthModule } from './auth/auth.module';
+import { CommonModule } from './common/common.module';
+import { CommunityModule } from './community/community.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ReportsModule } from './reports/reports.module';
+import { RoleApplicationsModule } from './role-applications/role-applications.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    // Global environment configuration (.env)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      validate: (config) => {
+        if (config.NODE_ENV === 'production') {
+          if (!config.JWT_ACCESS_SECRET || config.JWT_ACCESS_SECRET.length < 32) {
+            throw new Error('Set JWT_ACCESS_SECRET to a random value of at least 32 characters.');
+          }
+          if (!config.JWT_REFRESH_SECRET || config.JWT_REFRESH_SECRET.length < 32) {
+            throw new Error('Set JWT_REFRESH_SECRET to a separate random value of at least 32 characters.');
+          }
+        }
+        return config;
+      },
     }),
-
-    // MySQL connection with TypeORM
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get<string>('DB_HOST', 'localhost'),
-        port: configService.get<number>('DB_PORT', 3306),
-        username: configService.get<string>('DB_USERNAME', 'root'),
-        password: configService.get<string>('DB_PASSWORD', ''),
-        database: configService.get<string>('DB_NAME', 'sportlk_db'),
-        entities: ALL_ENTITIES,
-        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true),
-        logging: configService.get<boolean>('DB_LOGGING', true),
-        timezone: '+05:30', // Sri Lanka Standard Time
-        charset: 'utf8mb4_unicode_ci',
-      }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.DB_HOST ?? '127.0.0.1',
+      port: Number(process.env.DB_PORT ?? 3306),
+      username: process.env.DB_USER ?? 'root',
+      password: process.env.DB_PASSWORD ?? '',
+      database: process.env.DB_NAME ?? 'sportlk',
+      autoLoadEntities: true,
+      synchronize: process.env.NODE_ENV !== 'production',
+      retryAttempts: 3,
     }),
-
-<<<<<<< HEAD
-    // Member 4 Modules
+    UsersModule,
+    CommonModule,
+    AuthModule,
+    CommunityModule,
+    RoleApplicationsModule,
+    ReportsModule,
+    NotificationsModule,
+    TeamsModule,
     VenuesModule,
     MatchesModule,
     StatisticsModule,
-=======
-    // Member 2: Team & Squad Management Module
-    TeamsModule,
->>>>>>> avishka-dev
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
