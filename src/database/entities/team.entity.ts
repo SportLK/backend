@@ -44,7 +44,7 @@ export class Team {
   @Column({ name: 'team_bio', type: 'text', nullable: true })
   teamBio: string;
 
-  @Column({ name: 'primary_location_city', length: 100, nullable: true })
+  @Column({ name: 'primary_location_city', type: 'varchar', length: 100, nullable: true })
   primaryLocationCity: string;
 
   @Column({
@@ -57,7 +57,7 @@ export class Team {
   @Column({ name: 'suspension_reason', type: 'text', nullable: true })
   suspensionReason: string;
 
-  @Column({ name: 'suspension_duration', length: 50, nullable: true })
+  @Column({ name: 'suspension_duration', type: 'varchar', length: 50, nullable: true })
   suspensionDuration: string;
 
   @Column({ name: 'suspension_notes', type: 'text', nullable: true })
@@ -66,7 +66,7 @@ export class Team {
   @Column({ name: 'suspended_at', type: 'timestamp', nullable: true })
   suspendedAt: Date;
 
-  @Column({ name: 'suspended_by', length: 100, nullable: true })
+  @Column({ name: 'suspended_by', type: 'varchar', length: 100, nullable: true })
   suspendedBy: string;
 
   @CreateDateColumn({ name: 'created_at' })

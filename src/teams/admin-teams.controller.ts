@@ -41,6 +41,12 @@ export class AdminTeamsController {
     return this.teamsService.getTeamAnalytics();
   }
 
+  @Post('seed-demo')
+  @HttpCode(HttpStatus.OK)
+  seedDemoData() {
+    return this.teamsService.seedDemoData();
+  }
+
   // =========================================================================
   // 2. TEAM-RELATED REPORTS
   // =========================================================================

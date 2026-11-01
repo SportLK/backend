@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional } from 'class-validator';
+﻿import { IsEnum, IsInt, IsOptional } from 'class-validator';
 import { TeamMemberRole } from '../../database/entities/team-member.entity';
 
 export class UpdateMemberRoleDto {

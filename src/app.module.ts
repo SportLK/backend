@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ALL_ENTITIES } from './database/entities';
 import { MatchesModule } from './matches/matches.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { TeamsModule } from './teams/teams.module';
@@ -17,6 +18,7 @@ import { UsersModule } from './users/users.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', 'backend/.env'],
       validate: (config) => {
         if (config.NODE_ENV === 'production') {
           if (!config.JWT_ACCESS_SECRET || config.JWT_ACCESS_SECRET.length < 32) {
@@ -35,7 +37,8 @@ import { UsersModule } from './users/users.module';
       port: Number(process.env.DB_PORT ?? 3306),
       username: process.env.DB_USER ?? 'root',
       password: process.env.DB_PASSWORD ?? '',
-      database: process.env.DB_NAME ?? 'sportlk',
+      database: process.env.DB_NAME ?? 'sportlk_db',
+      entities: ALL_ENTITIES,
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV !== 'production',
       retryAttempts: 3,

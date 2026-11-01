@@ -8,7 +8,7 @@ export class Report {
   @Column({ name: 'target_id', length: 36 }) targetId: string;
   @Column({ length: 500 }) reason: string;
   @Column({ length: 20, default: 'open' }) status: 'open' | 'reviewing' | 'resolved' | 'dismissed';
-  @Column({ name: 'moderator_id', length: 36, nullable: true }) moderatorId: string | null;
+  @Column({ name: 'moderator_id', type: 'varchar', length: 36, nullable: true }) moderatorId: string | null;
   @Column({ name: 'moderator_note', type: 'text', nullable: true }) moderatorNote: string | null;
   @CreateDateColumn({ name: 'created_at' }) createdAt: Date;
   @UpdateDateColumn({ name: 'updated_at' }) updatedAt: Date;

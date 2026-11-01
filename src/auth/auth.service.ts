@@ -26,11 +26,9 @@ export class AuthService {
     const user = await this.userRepo.save(this.userRepo.create({
       email,
       passwordHash: await hash(dto.password, 12),
-      displayName: dto.displayName,
+      fullName: dto.displayName,
       city: dto.city ?? null,
       sports: [],
-      roles: ['player'],
-      status: 'active',
     }));
     return this.issue(user);
   }

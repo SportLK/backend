@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, BaseRole, ActiveWorkspace, AccountStatus } from './user.entity';
 import { UpdateProfileDto } from './user.dto';
 
 @Injectable()
@@ -16,12 +16,13 @@ export class UsersService implements OnModuleInit {
     await this.users.save(this.users.create({
       email,
       passwordHash: await hash(password, 12),
-      displayName: process.env.ADMIN_NAME ?? 'SportLK Admin',
+      fullName: process.env.ADMIN_NAME ?? 'SportLK Admin',
+      baseRole: BaseRole.ADMIN,
+      activeWorkspace: ActiveWorkspace.ADMIN,
+      accountStatus: AccountStatus.ACTIVE,
       bio: null,
       city: null,
       sports: [],
-      roles: ['admin'],
-      status: 'active',
     }));
   }
 
@@ -47,7 +48,10 @@ export class UsersService implements OnModuleInit {
   async updateProfile(id: string, dto: UpdateProfileDto) {
     const user = await this.findById(id);
     if (!user) throw new NotFoundException('User not found');
-    Object.assign(user, dto);
+    if (dto.displayName !== undefined) user.fullName = dto.displayName;
+    if (dto.city !== undefined) user.city = dto.city;
+    if (dto.bio !== undefined) user.bio = dto.bio;
+    if (dto.sports !== undefined) user.sports = dto.sports;
     return this.users.save(user);
   }
 

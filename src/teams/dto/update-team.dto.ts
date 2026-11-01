@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+﻿import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { TeamStatus } from '../../database/entities/team.entity';
 
 export class UpdateTeamDto {

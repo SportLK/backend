@@ -1,4 +1,4 @@
-export type SportLKRole = 'player' | 'team_manager' | 'organizer' | 'admin';
+﻿export type SportLKRole = 'player' | 'team_manager' | 'organizer' | 'admin';
 export type AccountStatus = 'active' | 'suspended' | 'disabled';
 
 export interface AuthUser {

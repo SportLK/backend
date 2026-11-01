@@ -20,6 +20,14 @@ import { Match } from './match.entity';
 import { MatchScore } from './match-score.entity';
 import { Payment } from './payment.entity';
 import { Notification } from './notification.entity';
+import {
+  Community,
+  CommunityPost,
+  CommunityComment,
+  CommunityLike,
+  CommunityMembership,
+} from '../../community/community.entity';
+import { Report } from '../../reports/report.entity';
 
 export * from './user.entity';
 export * from './user-sports-interest.entity';
@@ -67,4 +75,10 @@ export const ALL_ENTITIES = [
   MatchScore,
   Payment,
   Notification,
+  Community,
+  CommunityPost,
+  CommunityComment,
+  CommunityLike,
+  CommunityMembership,
+  Report,
 ];

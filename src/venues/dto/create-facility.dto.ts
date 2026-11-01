@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsBoolean, IsOptional, Min } from 'class-validator';
+﻿import { IsEnum, IsInt, IsBoolean, IsOptional, Min } from 'class-validator';
 import { SportType } from '../../database/entities/user-sports-interest.entity';
 
 export class CreateFacilityDto {

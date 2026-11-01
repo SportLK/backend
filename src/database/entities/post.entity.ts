@@ -35,7 +35,7 @@ export class Post {
   @Column({ name: 'media_url', type: 'text', nullable: true })
   mediaUrl: string;
 
-  @Column({ name: 'sport_tag', length: 50, nullable: true })
+  @Column({ name: 'sport_tag', type: 'varchar', length: 50, nullable: true })
   sportTag: string;
 
   @Column({ name: 'likes_count', type: 'int', default: 0 })

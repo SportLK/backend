@@ -35,7 +35,7 @@ export class Payment {
   @Column({ name: 'payhere_order_id', unique: true, length: 100 })
   payhereOrderId: string;
 
-  @Column({ name: 'payhere_payment_id', length: 100, nullable: true })
+  @Column({ name: 'payhere_payment_id', type: 'varchar', length: 100, nullable: true })
   payherePaymentId: string;
 
   @Column({
@@ -63,7 +63,7 @@ export class Payment {
   })
   paymentStatus: PaymentStatus;
 
-  @Column({ name: 'md5_verification_signature', length: 255, nullable: true })
+  @Column({ name: 'md5_verification_signature', type: 'varchar', length: 255, nullable: true })
   md5VerificationSignature: string;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -36,13 +36,13 @@ export class Venue {
   @Column({ length: 100 })
   city: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   district: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   province: string;
 
-  @Column({ name: 'contact_phone', length: 20, nullable: true })
+  @Column({ name: 'contact_phone', type: 'varchar', length: 20, nullable: true })
   contactPhone: string;
 
   @Column({

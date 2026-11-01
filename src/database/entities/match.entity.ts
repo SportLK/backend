@@ -26,7 +26,7 @@ export class Match {
   id: string;
 
   @Column({ name: 'tournament_id', type: 'bigint', nullable: true })
-  tournamentId: string;
+  tournamentId: string | null;
 
   @ManyToOne(() => Tournament, (t) => t.matches, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'tournament_id' })
@@ -47,7 +47,7 @@ export class Match {
   awayTeam: Team;
 
   @Column({ name: 'venue_id', type: 'bigint', nullable: true })
-  venueId: string;
+  venueId: string | null;
 
   @ManyToOne(() => Venue, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'venue_id' })
@@ -65,7 +65,7 @@ export class Match {
   matchStatus: MatchStatus;
 
   @Column({ name: 'winner_team_id', type: 'bigint', nullable: true })
-  winnerTeamId: string;
+  winnerTeamId: string | null;
 
   @ManyToOne(() => Team, { nullable: true })
   @JoinColumn({ name: 'winner_team_id' })

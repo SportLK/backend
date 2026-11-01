@@ -4,7 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRoleApplicationDto, ReviewRoleApplicationDto } from './role-application.dto';
-import { RoleApplication } from './role-application.entity';
+import { RoleApplication, RequestedRole, ApplicationStatus } from './role-application.entity';
 
 @Injectable()
 export class RoleApplicationsService {
@@ -20,11 +20,24 @@ export class RoleApplicationsService {
     if (user?.roles.includes(dto.requestedRole)) {
       throw new ConflictException('You already have this workspace role');
     }
+
+    const requestedRole = dto.requestedRole === 'organizer'
+      ? RequestedRole.TOURNAMENT_ORGANIZER
+      : RequestedRole.TEAM_MANAGER;
+
     const pending = await this.applications.findOne({
-      where: { userId, requestedRole: dto.requestedRole, status: 'pending' },
+      where: { userId, requestedRole, status: ApplicationStatus.PENDING },
     });
     if (pending) throw new ConflictException('An application for this role is already pending');
-    return this.applications.save(this.applications.create({ ...dto, userId }));
+
+    const application = this.applications.create({
+      userId,
+      requestedRole,
+      justificationNotes: `${dto.organization} | ${dto.experience}`,
+      status: ApplicationStatus.PENDING,
+    });
+
+    return this.applications.save(application);
   }
 
   listMine(userId: string) {
@@ -33,10 +46,10 @@ export class RoleApplicationsService {
 
   listPending() {
     return this.applications.createQueryBuilder('application')
-      .leftJoin('users', 'applicant', 'applicant.id = application.userId')
-      .addSelect(['applicant.displayName', 'applicant.email'])
-      .where('application.status = :status', { status: 'pending' })
-      .orderBy('application.createdAt', 'ASC')
+      .leftJoin('users', 'applicant', 'applicant.id = application.user_id')
+      .addSelect(['applicant.full_name', 'applicant.email'])
+      .where('application.status = :status', { status: ApplicationStatus.PENDING })
+      .orderBy('application.created_at', 'ASC')
       .getMany();
   }
 
@@ -45,23 +58,29 @@ export class RoleApplicationsService {
       const applications = manager.getRepository(RoleApplication);
       const application = await applications.findOne({ where: { id } });
       if (!application) throw new NotFoundException('Application not found');
-      if (application.status !== 'pending') {
+      if (application.status !== ApplicationStatus.PENDING) {
         throw new NotFoundException('This application has already been reviewed');
       }
-      application.status = dto.status;
-      application.reviewedById = reviewerId;
-      application.reviewNote = dto.reviewNote ?? null;
+
+      application.status = dto.status === 'approved' ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED;
+      application.reviewedByAdminId = reviewerId;
+      application.adminFeedback = dto.reviewNote ?? null;
+      application.reviewedAt = new Date();
       await applications.save(application);
 
       if (dto.status === 'approved') {
         const user = await manager.getRepository(User).findOne({ where: { id: application.userId } });
-        if (user && !user.roles.includes(application.requestedRole)) {
-          user.roles = [...user.roles, application.requestedRole];
+        if (user) {
+          if (application.requestedRole === RequestedRole.TEAM_MANAGER) {
+            user.isTeamManager = true;
+          } else if (application.requestedRole === RequestedRole.TOURNAMENT_ORGANIZER) {
+            user.isTournamentOrganizer = true;
+          }
           await manager.getRepository(User).save(user);
         }
       }
 
-      const roleName = application.requestedRole === 'team_manager' ? 'Team Manager' : 'Tournament Organizer';
+      const roleName = application.requestedRole === RequestedRole.TEAM_MANAGER ? 'Team Manager' : 'Tournament Organizer';
       await this.notifications.create(
         application.userId,
         dto.status === 'approved' ? 'Application approved' : 'Application update',

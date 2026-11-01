@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
+﻿import { IsEnum, IsNotEmpty } from 'class-validator';
 import { ChallengeStatus } from '../../database/entities/team-challenge.entity';
 
 export class RespondChallengeDto {

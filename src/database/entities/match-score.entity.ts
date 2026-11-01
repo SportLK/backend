@@ -20,10 +20,10 @@ export class MatchScore {
   @JoinColumn({ name: 'match_id' })
   match: Match;
 
-  @Column({ name: 'home_team_score_display', length: 100, nullable: true })
+  @Column({ name: 'home_team_score_display', type: 'varchar', length: 100, nullable: true })
   homeTeamScoreDisplay: string;
 
-  @Column({ name: 'away_team_score_display', length: 100, nullable: true })
+  @Column({ name: 'away_team_score_display', type: 'varchar', length: 100, nullable: true })
   awayTeamScoreDisplay: string;
 
   // Real-time JSON scorecard payload (overs, balls, sets, goals, foul stats)

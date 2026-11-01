@@ -47,4 +47,42 @@ export class Notification {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  // Compatibility getters/setters
+  get userId(): string {
+    return this.recipientId;
+  }
+  set userId(val: string) {
+    this.recipientId = val;
+  }
+
+  get title(): string {
+    return this.notificationTitle;
+  }
+  set title(val: string) {
+    this.notificationTitle = val;
+  }
+
+  get body(): string {
+    return this.notificationBody;
+  }
+  set body(val: string) {
+    this.notificationBody = val;
+  }
+
+  get kind(): string {
+    return this.notificationType;
+  }
+  set kind(val: string) {
+    this.notificationType = (val?.toUpperCase() in NotificationType)
+      ? (val.toUpperCase() as NotificationType)
+      : NotificationType.SYSTEM;
+  }
+
+  get readAt(): Date | null {
+    return this.isRead ? this.createdAt : null;
+  }
+  set readAt(val: Date | null) {
+    this.isRead = !!val;
+  }
 }

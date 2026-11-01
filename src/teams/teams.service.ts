@@ -214,7 +214,7 @@ export class TeamsService {
     });
 
     const saved = await this.memberRepository.save(member);
-    return this.memberRepository.findOne({
+    return this.memberRepository.findOneOrFail({
       where: { id: saved.id },
       relations: ['user'],
     });

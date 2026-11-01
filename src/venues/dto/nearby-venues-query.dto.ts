@@ -1,4 +1,4 @@
-import { IsNumber, Min, Max, IsOptional, IsEnum, IsString } from 'class-validator';
+﻿import { IsNumber, Min, Max, IsOptional, IsEnum, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SportType } from '../../database/entities/user-sports-interest.entity';
 

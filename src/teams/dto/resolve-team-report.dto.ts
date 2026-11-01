@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
+﻿import { IsEnum, IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { TeamReportStatus } from '../../database/entities/team-report.entity';
 
 export class ResolveTeamReportDto {

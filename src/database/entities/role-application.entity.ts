@@ -35,10 +35,10 @@ export class RoleApplication {
   requestedRole: RequestedRole;
 
   @Column({ name: 'justification_notes', type: 'text', nullable: true })
-  justificationNotes: string;
+  justificationNotes: string | null;
 
   @Column({ name: 'supporting_document_url', type: 'text', nullable: true })
-  supportingDocumentUrl: string;
+  supportingDocumentUrl: string | null;
 
   @Column({
     type: 'enum',
@@ -48,14 +48,45 @@ export class RoleApplication {
   status: ApplicationStatus;
 
   @Column({ name: 'reviewed_by_admin_id', type: 'bigint', nullable: true })
-  reviewedByAdminId: string;
+  reviewedByAdminId: string | null;
 
   @Column({ name: 'admin_feedback', type: 'text', nullable: true })
-  adminFeedback: string;
+  adminFeedback: string | null;
 
   @Column({ name: 'reviewed_at', type: 'datetime', nullable: true })
-  reviewedAt: Date;
+  reviewedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  // Compatibility getters/setters
+  get organization(): string {
+    return this.justificationNotes ?? '';
+  }
+  set organization(val: string) {
+    if (!this.justificationNotes) this.justificationNotes = val;
+    else this.justificationNotes = `${val} | ${this.justificationNotes}`;
+  }
+
+  get experience(): string {
+    return this.justificationNotes ?? '';
+  }
+  set experience(val: string) {
+    if (!this.justificationNotes) this.justificationNotes = val;
+    else this.justificationNotes = `${this.justificationNotes} | ${val}`;
+  }
+
+  get reviewNote(): string | null {
+    return this.adminFeedback;
+  }
+  set reviewNote(val: string | null) {
+    this.adminFeedback = val;
+  }
+
+  get reviewedById(): string | null {
+    return this.reviewedByAdminId;
+  }
+  set reviewedById(val: string | null) {
+    this.reviewedByAdminId = val;
+  }
 }

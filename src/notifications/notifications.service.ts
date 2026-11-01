@@ -1,31 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from './notification.entity';
+import { Notification, NotificationType } from './notification.entity';
 
 @Injectable()
 export class NotificationsService {
   constructor(@InjectRepository(Notification) private readonly notifications: Repository<Notification>) {}
 
   listForUser(userId: string) {
-    return this.notifications.find({ where: { userId }, order: { createdAt: 'DESC' }, take: 50 });
+    return this.notifications.find({ where: { recipientId: userId }, order: { createdAt: 'DESC' }, take: 50 });
   }
 
-  create(userId: string, title: string, body: string, kind: string) {
-    return this.notifications.save(this.notifications.create({ userId, title, body, kind }));
+  create(userId: string, title: string, body: string, kind = 'SYSTEM') {
+    const notificationType = (kind?.toUpperCase() in NotificationType)
+      ? (kind.toUpperCase() as NotificationType)
+      : NotificationType.SYSTEM;
+
+    return this.notifications.save(this.notifications.create({
+      recipientId: userId,
+      notificationTitle: title,
+      notificationBody: body,
+      notificationType,
+      isRead: false,
+    }));
   }
 
   async markRead(id: string, userId: string) {
-    const notification = await this.notifications.findOne({ where: { id, userId } });
+    const notification = await this.notifications.findOne({ where: { id, recipientId: userId } });
     if (!notification) throw new NotFoundException('Notification not found');
-    notification.readAt = new Date();
+    notification.isRead = true;
     return this.notifications.save(notification);
   }
 
   async markAllRead(userId: string) {
     await this.notifications.createQueryBuilder().update()
-      .set({ readAt: new Date() })
-      .where('user_id = :userId AND read_at IS NULL', { userId })
+      .set({ isRead: true })
+      .where('recipient_id = :userId AND is_read = false', { userId })
       .execute();
     return { success: true };
   }
