@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ReportsModule } from './reports/reports.module';
 import { RoleApplicationsModule } from './role-applications/role-applications.module';
 import { UsersModule } from './users/users.module';
+import { TournamentsModule } from './tournaments/tournaments.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { UsersModule } from './users/users.module';
     VenuesModule,
     MatchesModule,
     StatisticsModule,
+    TournamentsModule,
   ],
 })
 export class AppModule {}

@@ -16,6 +16,7 @@ import { VenueBooking } from './venue-booking.entity';
 import { Tournament } from './tournament.entity';
 import { TournamentRegistration } from './tournament-registration.entity';
 import { TournamentBracket } from './tournament-bracket.entity';
+import { TournamentReport } from './tournament-report.entity';
 import { Match } from './match.entity';
 import { MatchScore } from './match-score.entity';
 import { Payment } from './payment.entity';
@@ -47,6 +48,7 @@ export * from './venue-booking.entity';
 export * from './tournament.entity';
 export * from './tournament-registration.entity';
 export * from './tournament-bracket.entity';
+export * from './tournament-report.entity';
 export * from './match.entity';
 export * from './match-score.entity';
 export * from './payment.entity';
@@ -71,6 +73,7 @@ export const ALL_ENTITIES = [
   Tournament,
   TournamentRegistration,
   TournamentBracket,
+  TournamentReport,
   Match,
   MatchScore,
   Payment,

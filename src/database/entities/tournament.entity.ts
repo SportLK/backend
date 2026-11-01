@@ -1,8 +1,9 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
@@ -13,6 +14,7 @@ import { SportType } from './user-sports-interest.entity';
 import { TournamentRegistration } from './tournament-registration.entity';
 import { TournamentBracket } from './tournament-bracket.entity';
 import { Match } from './match.entity';
+import { TournamentReport } from './tournament-report.entity';
 
 export enum TournamentFormat {
   KNOCKOUT_SINGLE = 'KNOCKOUT_SINGLE',
@@ -23,6 +25,7 @@ export enum TournamentFormat {
 export enum TournamentStatus {
   DRAFT = 'DRAFT',
   OPEN_FOR_REGISTRATION = 'OPEN_FOR_REGISTRATION',
+  REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
   ONGOING = 'ONGOING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
@@ -41,14 +44,26 @@ export class Tournament {
   organizer: User;
 
   @Column({ name: 'venue_id', type: 'bigint', nullable: true })
-  venueId: string;
+  venueId: string | null;
 
   @ManyToOne(() => Venue, (venue) => venue.tournaments, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'venue_id' })
-  venue: Venue;
+  venue: Venue | null;
 
   @Column({ name: 'tournament_name', length: 150 })
   tournamentName: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  rules: string | null;
+
+  @Column({ name: 'banner_image_url', type: 'text', nullable: true })
+  bannerImageUrl: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city: string | null;
 
   @Column({ type: 'enum', enum: SportType })
   sportType: SportType;
@@ -61,6 +76,9 @@ export class Tournament {
   })
   tournamentFormat: TournamentFormat;
 
+  @Column({ name: 'min_participating_teams', type: 'int', default: 2 })
+  minParticipatingTeams: number;
+
   @Column({ name: 'max_participating_teams', type: 'int', default: 16 })
   maxParticipatingTeams: number;
 
@@ -72,6 +90,12 @@ export class Tournament {
     default: 0.0,
   })
   registrationFee: number;
+
+  @Column({ name: 'prize_pool', type: 'varchar', length: 100, nullable: true })
+  prizePool: string | null;
+
+  @Column({ name: 'registration_deadline', type: 'date', nullable: true })
+  registrationDeadline: string | null;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate: string;
@@ -90,6 +114,9 @@ export class Tournament {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
   @OneToMany(() => TournamentRegistration, (reg) => reg.tournament)
   registrations: TournamentRegistration[];
 
@@ -98,4 +125,7 @@ export class Tournament {
 
   @OneToMany(() => Match, (match) => match.tournament)
   matches: Match[];
+
+  @OneToMany(() => TournamentReport, (report) => report.tournament)
+  reports: TournamentReport[];
 }
