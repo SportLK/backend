@@ -1,35 +1,55 @@
-# SportLK API
+# 🏟️ SportLK Backend
 
-NestJS API for identity, player profiles, roles, community content, moderation, and notifications. Team, roster, tournament, and event data belong to their own platform modules. This API grants approved workspace roles and exposes the user/community information those modules can use.
+<p align="center">
+  <strong>The API and data layer for a connected Sri Lankan sports community.</strong>
+</p>
 
-## Run locally
+SportLK brings players, teams, event organizers, and spectators together to discover sports events and manage tournaments. This repository provides the NestJS API used by the mobile app and admin website.
 
-Requirements: Node.js 20+, MySQL 8+, and npm.
+## 🧰 Technology
 
-1. Create a MySQL database named `sportlk` (or set `DB_NAME`).
-2. Copy `.env.example` to `.env` and set your database connection and JWT secrets.
-3. Run `npm install`, then `npm run start:dev`.
-4. The API listens on `http://localhost:3000/api/v1`.
+| Layer | Technology |
+| --- | --- |
+| API | NestJS · TypeScript · REST · WebSockets |
+| Database | MySQL · TypeORM |
+| Mobile client | [Expo / React Native](https://github.com/SportLK/mobile-frontend) |
+| Admin website | [Next.js](https://github.com/SportLK/web-admin-frontend) |
 
-The development configuration creates tables from the entities. Production disables TypeORM schema synchronization; use reviewed migrations for production schema changes.
+## ✨ Capabilities
 
-Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and optionally `ADMIN_NAME` to create the first administrator during startup. If those values are absent, registration only creates player accounts and admin-only workflows stay protected.
+- User registration, authentication, profiles, and role-based access
+- Team and roster management, venues, matches, and statistics
+- Community posts, notifications, reports, and moderation workflows
+- Live match updates over WebSockets
 
-## API surface
+## 🚀 Run locally
 
-All routes except registration, login, and refresh require `Authorization: Bearer <accessToken>`. Access tokens last 15 minutes. Refresh tokens last 30 days, are stored as a hash, and rotate when refreshed.
+### Requirements
 
-| Area | Routes | Access |
-| --- | --- | --- |
-| Authentication | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` | Public sign-in; logout requires a token |
-| Profiles and accounts | `GET /users/me`, `PATCH /users/me`, `GET /users`, `PATCH /users/:id/status` | Self-service; account management is admin-only |
-| Communities and feed | `GET /communities`, `POST /communities`, `POST/DELETE /communities/:id/join`, `GET/POST /community/posts`, post likes/comments and moderation | Signed-in members; hiding posts is admin-only |
-| Role applications | `POST /role-applications`, `GET /role-applications/mine`, `GET /role-applications/pending`, `PATCH /role-applications/:id/review` | Applicants; queue and decisions are admin-only |
-| Reports | `POST /reports`, `GET /reports`, `PATCH /reports/:id` | Submitters; review is admin-only |
-| Notifications | `GET /notifications`, `PATCH /notifications/:id/read`, `PATCH /notifications/read-all` | Own notifications only |
+- Node.js 20 or later and npm
+- MySQL 8 or later
 
-Approving a Team Manager or Tournament Organizer application adds that role to the user and creates a notification. The team and tournament modules can read `user.roles` to decide which workspaces to expose.
+Create a MySQL database, copy `.env.example` to `.env`, and set the database connection and JWT secrets. Then install dependencies and start the API:
 
-## Environment variables
+```bash
+npm ci
+npm run start:dev
+```
 
-See `.env.example`. Use separate random JWT secrets in deployed environments. Set `CORS_ORIGIN` to a comma-separated allowlist in production; development allows local origins by default.
+The API listens at [http://localhost:3000/api/v1](http://localhost:3000/api/v1).
+
+### Available scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run start:dev` | Start the development server with reload |
+| `npm run build` | Build the production app |
+| `npm run start:prod` | Run the production build |
+
+Development mode synchronizes the database schema from entities. Production disables automatic schema synchronization; use reviewed migrations for production changes. Set separate random values for `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` in deployed environments.
+
+## 🔗 SportLK repositories
+
+- [Backend API](https://github.com/SportLK/backend)
+- [Mobile app](https://github.com/SportLK/mobile-frontend)
+- [Admin website](https://github.com/SportLK/web-admin-frontend)
