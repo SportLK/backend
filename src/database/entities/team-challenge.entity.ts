@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -42,7 +42,7 @@ export class TeamChallenge {
   @Column({ name: 'proposed_match_date', type: 'datetime' })
   proposedMatchDate: Date;
 
-  @Column({ type: 'enum', enum: SportType })
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType })
   sportType: SportType;
 
   @Column({

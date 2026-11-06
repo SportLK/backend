@@ -35,7 +35,7 @@ export class Team {
   @Column({ name: 'team_name', unique: true, length: 100 })
   teamName: string;
 
-  @Column({ type: 'enum', enum: SportType })
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType })
   sportType: SportType;
 
   @Column({ name: 'logo_url', type: 'text', nullable: true })

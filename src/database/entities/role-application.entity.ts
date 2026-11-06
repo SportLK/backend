@@ -31,7 +31,7 @@ export class RoleApplication {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'enum', enum: RequestedRole })
+  @Column({ name: 'requested_role', type: 'enum', enum: RequestedRole })
   requestedRole: RequestedRole;
 
   @Column({ name: 'justification_notes', type: 'text', nullable: true })

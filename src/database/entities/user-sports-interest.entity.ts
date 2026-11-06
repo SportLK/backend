@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -32,10 +32,11 @@ export class UserSportsInterest {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'enum', enum: SportType })
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType })
   sportType: SportType;
 
   @Column({
+    name: 'skill_level',
     type: 'enum',
     enum: SkillLevel,
     default: SkillLevel.BEGINNER,

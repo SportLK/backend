@@ -65,7 +65,7 @@ export class Tournament {
   @Column({ type: 'varchar', length: 100, nullable: true })
   city: string | null;
 
-  @Column({ type: 'enum', enum: SportType })
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType })
   sportType: SportType;
 
   @Column({

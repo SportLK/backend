@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -20,7 +20,7 @@ export class VenueFacility {
   @JoinColumn({ name: 'venue_id' })
   venue: Venue;
 
-  @Column({ type: 'enum', enum: SportType })
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType })
   sportType: SportType;
 
   @Column({ name: 'court_or_pitch_count', type: 'int', default: 1 })
