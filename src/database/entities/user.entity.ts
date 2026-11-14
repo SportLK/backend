@@ -121,6 +121,29 @@ export class User {
     this.fullName = val;
   }
 
+  toJSON() {
+    return {
+      id: this.id,
+      email: this.email,
+      fullName: this.fullName,
+      displayName: this.fullName || 'Player',
+      city: this.city,
+      bio: this.bio,
+      phoneNumber: this.phoneNumber,
+      profileImageUrl: this.profileImageUrl,
+      baseRole: this.baseRole,
+      isTeamManager: this.isTeamManager,
+      isTournamentOrganizer: this.isTournamentOrganizer,
+      activeWorkspace: this.activeWorkspace,
+      accountStatus: this.accountStatus,
+      roles: this.roles,
+      status: this.status,
+      sports: this.sports ?? [],
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
   get status(): 'active' | 'suspended' | 'disabled' {
     if (this.accountStatus === AccountStatus.SUSPENDED) return 'suspended';
     if (this.accountStatus === AccountStatus.DEACTIVATED) return 'disabled';
