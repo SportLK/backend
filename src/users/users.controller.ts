@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/current-user.decorator';
 import { AuthUser } from '../common/auth.types';
 import { Roles } from '../common/roles.decorator';
@@ -12,10 +12,11 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
-  @Get('me') me(@CurrentUser() user: AuthUser) { return this.users.findById(user.id); }
+  @Get('me') me(@CurrentUser() user: AuthUser) { return this.users.getProfile(user.id); }
 
-  @Patch('me') updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
-    return this.users.updateProfile(user.id, dto);
+  @Patch('me') async updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
+    await this.users.updateProfile(user.id, dto);
+    return this.users.getProfile(user.id);
   }
 
   @Get()
