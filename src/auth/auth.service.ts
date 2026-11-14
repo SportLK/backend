@@ -83,11 +83,12 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
-        roles: user.roles,
-        status: user.status,
-        sports: user.sports,
-        city: user.city,
+        fullName: user.fullName || user.displayName || 'Player',
+        displayName: user.displayName || user.fullName || 'Player',
+        roles: user.roles || ['player'],
+        status: user.status || 'active',
+        sports: user.sports ?? [],
+        city: user.city ?? '',
       },
     };
   }
