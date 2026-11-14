@@ -30,6 +30,27 @@ export class UsersService implements OnModuleInit {
     return this.users.findOne({ where: { id } });
   }
 
+  async getProfile(id: string) {
+    const user = await this.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      displayName: user.fullName || user.displayName || 'Player',
+      city: user.city,
+      bio: user.bio,
+      phoneNumber: user.phoneNumber,
+      profileImageUrl: user.profileImageUrl,
+      roles: user.roles,
+      status: user.status,
+      sports: user.sports ?? [],
+      activeWorkspace: user.activeWorkspace,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
   findByEmail(email: string) {
     return this.users.findOne({ where: { email: email.toLowerCase() } });
   }
