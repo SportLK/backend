@@ -1,8 +1,9 @@
-﻿import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { CreateCommentDto, CreateCommunityDto, CreatePostDto } from './community.dto';
 import { Community, CommunityComment, CommunityLike, CommunityMembership, CommunityPost } from './community.entity';
+import { User } from '../database/entities/user.entity';
 
 @Injectable()
 export class CommunityService {
@@ -66,12 +67,26 @@ export class CommunityService {
     });
   }
 
-  listPosts(includeHidden = false) {
+  async listPosts(includeHidden = false) {
     const query = this.posts.createQueryBuilder('post')
       .orderBy('post.createdAt', 'DESC')
       .limit(60);
     if (!includeHidden) query.where('post.status = :status', { status: 'visible' });
-    return query.getMany();
+    const posts = await query.getMany();
+    if (!posts.length) return [];
+
+    const authorIds = Array.from(new Set(posts.map((p) => p.authorId).filter(Boolean)));
+    if (!authorIds.length) return posts;
+
+    const users = await this.dataSource.getRepository(User).find({
+      where: { id: In(authorIds) },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u.displayName || u.fullName || u.email]));
+
+    return posts.map((p) => ({
+      ...p,
+      authorName: userMap.get(p.authorId) || null,
+    }));
   }
 
   async createPost(authorId: string, dto: CreatePostDto) {
@@ -108,8 +123,22 @@ export class CommunityService {
     return comment;
   }
 
-  listComments(postId: string) {
-    return this.comments.find({ where: { postId }, order: { createdAt: 'ASC' } });
+  async listComments(postId: string) {
+    const comments = await this.comments.find({ where: { postId }, order: { createdAt: 'ASC' } });
+    if (!comments.length) return [];
+
+    const authorIds = Array.from(new Set(comments.map((c) => c.authorId).filter(Boolean)));
+    if (!authorIds.length) return comments;
+
+    const users = await this.dataSource.getRepository(User).find({
+      where: { id: In(authorIds) },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u.displayName || u.fullName || u.email]));
+
+    return comments.map((c) => ({
+      ...c,
+      author: userMap.get(c.authorId) || 'Athlete',
+    }));
   }
 
   async setPostStatus(postId: string, status: 'visible' | 'hidden') {
