@@ -89,6 +89,7 @@ export class AuthService {
         status: user.status || 'active',
         sports: user.sports ?? [],
         city: user.city ?? '',
+        activeWorkspace: user.activeWorkspace,
       },
     };
   }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
@@ -73,6 +73,18 @@ export class UsersService implements OnModuleInit {
     if (dto.city !== undefined) user.city = dto.city;
     if (dto.bio !== undefined) user.bio = dto.bio;
     if (dto.sports !== undefined) user.sports = dto.sports;
+    if (dto.activeWorkspace !== undefined) {
+      const permitted =
+        dto.activeWorkspace === ActiveWorkspace.PLAYER ||
+        (dto.activeWorkspace === ActiveWorkspace.TEAM_MANAGER && user.isTeamManager) ||
+        (dto.activeWorkspace === ActiveWorkspace.TOURNAMENT_ORGANIZER && user.isTournamentOrganizer);
+      if (!permitted) throw new ForbiddenException('That workspace has not been approved for this account');
+      user.activeWorkspace = dto.activeWorkspace === 'TEAM_MANAGER'
+        ? ActiveWorkspace.TEAM_MANAGER
+        : dto.activeWorkspace === 'TOURNAMENT_ORGANIZER'
+        ? ActiveWorkspace.TOURNAMENT_ORGANIZER
+        : ActiveWorkspace.PLAYER;
+    }
     return this.users.save(user);
   }
 

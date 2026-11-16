@@ -20,6 +20,10 @@ export class RoleApplicationsController {
   @Roles('admin')
   @UseGuards(RolesGuard)
   pending() { return this.applications.listPending(); }
+  @Get()
+  @Roles('admin')
+  @UseGuards(RolesGuard)
+  listAll() { return this.applications.listAll(); }
   @Patch(':id/review')
   @Roles('admin')
   @UseGuards(RolesGuard)
