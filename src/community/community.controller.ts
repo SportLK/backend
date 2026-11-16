@@ -25,7 +25,7 @@ export class CommunityController {
     return this.community.leaveCommunity(id, user.id);
   }
   @Get('community/posts') listPosts(@CurrentUser() user: AuthUser) {
-    return this.community.listPosts(user.roles.includes('admin'));
+    return this.community.listPosts(user.id, user.roles.includes('admin'));
   }
   @Post('community/posts') createPost(@CurrentUser() user: AuthUser, @Body() dto: CreatePostDto) {
     return this.community.createPost(user.id, dto);

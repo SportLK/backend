@@ -15,6 +15,8 @@ import { TournamentsService } from './tournaments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { AuthUser } from '../common/auth.types';
+import { Roles } from '../common/roles.decorator';
+import { RolesGuard } from '../common/roles.guard';
 import {
   CreateTournamentDto,
   UpdateTournamentDto,
@@ -35,7 +37,8 @@ export class TournamentsController {
   // =========================================================================
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('organizer')
   @HttpCode(HttpStatus.CREATED)
   createTournament(@CurrentUser() user: AuthUser, @Body() dto: CreateTournamentDto) {
     return this.tournamentsService.createTournament(user.id, dto);
@@ -64,7 +67,8 @@ export class TournamentsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('organizer', 'admin')
   updateTournament(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
@@ -118,7 +122,8 @@ export class TournamentsController {
   // =========================================================================
 
   @Post(':id/generate-bracket')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('organizer', 'admin')
   generateBracket(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
@@ -134,7 +139,8 @@ export class TournamentsController {
   }
 
   @Patch(':id/bracket/:bracketId/winner')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('organizer', 'admin')
   advanceMatchWinner(
     @Param('id') id: string,
     @Param('bracketId') bracketId: string,

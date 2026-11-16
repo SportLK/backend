@@ -9,7 +9,11 @@
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/roles.guard';
+import { Roles } from '../common/roles.decorator';
 import { VenuesService } from './venues.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { NearbyVenuesQueryDto } from './dto/nearby-venues-query.dto';
@@ -23,6 +27,8 @@ export class VenuesController {
    * Admin adds a new venue with facilities & GPS coordinates
    */
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createVenueDto: CreateVenueDto) {
     return this.venuesService.create(createVenueDto);
@@ -63,6 +69,8 @@ export class VenuesController {
    * Update venue details (Admin)
    */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   update(
     @Param('id') id: string,
     @Body() updateVenueDto: Partial<CreateVenueDto>,
@@ -75,6 +83,8 @@ export class VenuesController {
    * Deactivate a venue (Admin)
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.venuesService.remove(id);
   }

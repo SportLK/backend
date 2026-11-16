@@ -484,6 +484,7 @@ export class TournamentsService {
 
         const match = matchRepo.create({
           tournamentId: tournament.id,
+          sportType: tournament.sportType,
           homeTeamId: team1.id,
           awayTeamId: team2.id,
           venueId: venueId || null,
@@ -553,6 +554,7 @@ export class TournamentsService {
 
         const match = matchRepo.create({
           tournamentId: tournament.id,
+          sportType: tournament.sportType,
           homeTeamId: team1.id,
           awayTeamId: team2.id,
           venueId: venueId || null,

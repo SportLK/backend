@@ -80,13 +80,13 @@ export class StatisticsService {
     const [matchesBySport, recentCompletedMatches] = await Promise.all([
       this.dataSource.query(`
         SELECT 
-          COALESCE(t.sport_type, 'FRIENDLY') as sportType,
+          COALESCE(m.sport_type, t.sport_type, 'FRIENDLY') as sportType,
           COUNT(m.id) as totalMatches,
           SUM(CASE WHEN m.match_status = 'COMPLETED' THEN 1 ELSE 0 END) as completedMatches,
           SUM(CASE WHEN m.match_status = 'LIVE' THEN 1 ELSE 0 END) as liveMatches
         FROM matches m
         LEFT JOIN tournaments t ON m.tournament_id = t.id
-        GROUP BY COALESCE(t.sport_type, 'FRIENDLY')
+        GROUP BY COALESCE(m.sport_type, t.sport_type, 'FRIENDLY')
       `),
       this.dataSource.query(`
         SELECT 
