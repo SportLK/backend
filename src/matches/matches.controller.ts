@@ -10,7 +10,11 @@
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/roles.guard';
+import { Roles } from '../common/roles.decorator';
 import { MatchesService } from './matches.service';
 import { MatchesGateway } from './matches.gateway';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -30,6 +34,8 @@ export class MatchesController {
    * Schedule a new match at a venue
    */
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createMatchDto: CreateMatchDto) {
     return this.matchesService.create(createMatchDto);
@@ -67,6 +73,8 @@ export class MatchesController {
    * Update match lifecycle state (SCHEDULED -> LIVE -> COMPLETED)
    */
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateStatus(
     @Param('id') id: string,
     @Body() updateDto: UpdateMatchStatusDto,
@@ -82,6 +90,8 @@ export class MatchesController {
    * Update current score display and ball-by-ball JSON
    */
   @Put(':id/score')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async updateScore(
     @Param('id') id: string,
     @Body() scoreDto: UpdateScoreDto,
@@ -97,6 +107,8 @@ export class MatchesController {
    * Delete or cancel a match
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.matchesService.remove(id);
   }

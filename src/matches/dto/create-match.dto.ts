@@ -3,7 +3,9 @@
   IsOptional,
   IsString,
   IsDateString,
+  IsEnum,
 } from 'class-validator';
+import { SportType } from '../../database/entities/user-sports-interest.entity';
 
 export class CreateMatchDto {
   @IsOptional()
@@ -21,6 +23,10 @@ export class CreateMatchDto {
   @IsOptional()
   @IsString()
   venueId?: string;
+
+  @IsOptional()
+  @IsEnum(SportType)
+  sportType?: SportType;
 
   @IsNotEmpty()
   @IsDateString()

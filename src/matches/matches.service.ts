@@ -28,7 +28,7 @@ export class MatchesService {
    * Schedule a new match and initialize its scorecard
    */
   async create(createMatchDto: CreateMatchDto): Promise<Match> {
-    const { tournamentId, homeTeamId, awayTeamId, venueId, scheduledStartTime } = createMatchDto;
+    const { tournamentId, homeTeamId, awayTeamId, venueId, scheduledStartTime, sportType } = createMatchDto;
 
     if (homeTeamId === awayTeamId) {
       throw new BadRequestException('Home team and Away team cannot be the same team');
@@ -39,6 +39,7 @@ export class MatchesService {
       homeTeamId,
       awayTeamId,
       venueId: venueId || null,
+      sportType: sportType ?? null,
       scheduledStartTime: new Date(scheduledStartTime),
       matchStatus: MatchStatus.SCHEDULED,
     });
@@ -65,18 +66,23 @@ export class MatchesService {
    * Get all live matches (status = LIVE) with latest scores
    */
   async findLiveMatches(): Promise<Match[]> {
-    return this.matchRepository.find({
-      where: { matchStatus: MatchStatus.LIVE },
-      relations: ['homeTeam', 'awayTeam', 'venue', 'tournament', 'score'],
-      order: { scheduledStartTime: 'ASC' },
-    });
+    try {
+      return await this.matchRepository.find({
+        where: { matchStatus: MatchStatus.LIVE },
+        relations: ['homeTeam', 'awayTeam', 'venue', 'tournament', 'score'],
+        order: { scheduledStartTime: 'ASC' },
+      });
+    } catch (error) {
+      this.logger.error('Failed to load live matches from the database', error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
   }
 
   /**
    * Get all matches with optional filters (tournament, team, venue, status, date)
    */
   async findAll(query: MatchQueryDto): Promise<Match[]> {
-    const { tournamentId, teamId, venueId, matchStatus, date } = query;
+    const { tournamentId, teamId, venueId, matchStatus, date, sportType } = query;
 
     const qb = this.matchRepository
       .createQueryBuilder('m')
@@ -103,13 +109,20 @@ export class MatchesService {
       qb.andWhere('m.match_status = :matchStatus', { matchStatus });
     }
 
+    if (sportType) qb.andWhere('m.sport_type = :sportType', { sportType });
+
     if (date) {
       qb.andWhere('DATE(m.scheduled_start_time) = :date', { date });
     }
 
     qb.orderBy('m.scheduled_start_time', 'ASC');
 
-    return qb.getMany();
+    try {
+      return await qb.getMany();
+    } catch (error) {
+      this.logger.error('Failed to load matches from the database', error instanceof Error ? error.stack : undefined);
+      throw error;
+    }
   }
 
   /**

@@ -9,9 +9,11 @@ import { User } from './user.entity';
 
 export enum SportType {
   CRICKET = 'CRICKET',
+  FOOTBALL = 'FOOTBALL',
   FUTSAL = 'FUTSAL',
   BADMINTON = 'BADMINTON',
   BASKETBALL = 'BASKETBALL',
+  VOLLEYBALL = 'VOLLEYBALL',
 }
 
 export enum SkillLevel {

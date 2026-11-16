@@ -11,6 +11,7 @@ import { Tournament } from './tournament.entity';
 import { Team } from './team.entity';
 import { Venue } from './venue.entity';
 import { MatchScore } from './match-score.entity';
+import { SportType } from './user-sports-interest.entity';
 
 export enum MatchStatus {
   SCHEDULED = 'SCHEDULED',
@@ -31,6 +32,9 @@ export class Match {
   @ManyToOne(() => Tournament, (t) => t.matches, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'tournament_id' })
   tournament: Tournament;
+
+  @Column({ name: 'sport_type', type: 'enum', enum: SportType, nullable: true })
+  sportType: SportType | null;
 
   @Column({ name: 'home_team_id', type: 'bigint' })
   homeTeamId: string;
