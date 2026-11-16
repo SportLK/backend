@@ -5,14 +5,14 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 async function cleanSeedData() {
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '44716'),
+    port: parseInt(process.env.DB_PORT || '3306', 10),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { rejectUnauthorized: false }
+    database: process.env.DB_NAME || 'sportlk_db',
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
   });
 
-  console.log('Cleaning seed data from Railway MySQL...');
+  console.log('Cleaning seed data from the configured MySQL database...');
   await conn.query('SET FOREIGN_KEY_CHECKS = 0;');
   await conn.query('TRUNCATE TABLE match_scores;');
   await conn.query('TRUNCATE TABLE matches;');

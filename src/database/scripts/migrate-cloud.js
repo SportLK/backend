@@ -19,14 +19,14 @@ async function addColumnIfNotExists(conn, table, column, definition) {
 async function runMigration() {
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '28153'),
+    port: parseInt(process.env.DB_PORT || '3306', 10),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: { rejectUnauthorized: false }
+    database: process.env.DB_NAME || 'sportlk_db',
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   });
 
-  console.log('Connected to Aiven MySQL, updating columns...');
+  console.log('Connected to the configured MySQL database, updating columns...');
 
   // 1. users
   await addColumnIfNotExists(conn, 'users', 'city', 'VARCHAR(100) NULL AFTER full_name');
@@ -50,6 +50,14 @@ async function runMigration() {
   await addColumnIfNotExists(conn, 'teams', 'suspension_notes', 'TEXT NULL AFTER suspension_duration');
   await addColumnIfNotExists(conn, 'teams', 'suspended_at', 'TIMESTAMP NULL AFTER suspension_notes');
   await addColumnIfNotExists(conn, 'teams', 'suspended_by', 'VARCHAR(100) NULL AFTER suspended_at');
+
+  // 4. matches
+  await addColumnIfNotExists(conn, 'matches', 'sport_type', "ENUM('CRICKET','FOOTBALL','FUTSAL','BADMINTON','BASKETBALL','VOLLEYBALL') NULL AFTER tournament_id");
+  const sportsEnum = "ENUM('CRICKET','FOOTBALL','FUTSAL','BADMINTON','BASKETBALL','VOLLEYBALL')";
+  for (const table of ['user_sports_interests', 'teams', 'venue_facilities', 'team_challenges', 'tournaments']) {
+    await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN sport_type ${sportsEnum} NOT NULL`);
+  }
+  await conn.query(`ALTER TABLE matches MODIFY COLUMN sport_type ${sportsEnum} NULL`);
 
   // 4. tournament_brackets
   await addColumnIfNotExists(conn, 'tournament_brackets', 'round_name', 'VARCHAR(50) NULL AFTER round_number');
