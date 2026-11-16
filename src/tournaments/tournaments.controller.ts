@@ -90,7 +90,8 @@ export class TournamentsController {
   // =========================================================================
 
   @Post(':id/register')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.CREATED)
   registerTeam(
     @Param('id') id: string,
