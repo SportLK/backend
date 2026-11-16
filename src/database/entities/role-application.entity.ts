@@ -27,6 +27,9 @@ export class RoleApplication {
   @Column({ name: 'user_id', type: 'bigint' })
   userId: string;
 
+  @Column({ name: 'assigned_organizer_id', type: 'bigint', nullable: true })
+  assignedOrganizerId: string | null;
+
   @ManyToOne(() => User, (user) => user.roleApplications, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
@@ -49,6 +52,9 @@ export class RoleApplication {
 
   @Column({ name: 'reviewed_by_admin_id', type: 'bigint', nullable: true })
   reviewedByAdminId: string | null;
+
+  @Column({ name: 'reviewed_by_organizer_id', type: 'bigint', nullable: true })
+  reviewedByOrganizerId: string | null;
 
   @Column({ name: 'admin_feedback', type: 'text', nullable: true })
   adminFeedback: string | null;

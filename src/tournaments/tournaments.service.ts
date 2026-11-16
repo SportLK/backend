@@ -237,6 +237,10 @@ export class TournamentsService {
       throw new NotFoundException(`Team with ID ${dto.teamId} not found`);
     }
 
+    if (team.managerId !== teamManagerId) {
+      throw new ForbiddenException('You can only register a team that you manage');
+    }
+
     // Check if team sport matches tournament sport
     if (team.sportType && tournament.sportType && team.sportType !== tournament.sportType) {
       throw new BadRequestException(
@@ -249,7 +253,14 @@ export class TournamentsService {
     });
 
     if (existingReg) {
-      throw new BadRequestException('This team is already registered for this tournament');
+      if (existingReg.registrationStatus === RegistrationStatus.DISQUALIFIED) {
+        throw new BadRequestException('This team was disqualified from this tournament');
+      }
+      if (existingReg.registrationStatus !== RegistrationStatus.CONFIRMED) {
+        existingReg.registrationStatus = RegistrationStatus.CONFIRMED;
+        await this.registrationRepo.save(existingReg);
+      }
+      return existingReg;
     }
 
     const confirmedCount = tournament.registrations?.filter(
@@ -260,16 +271,11 @@ export class TournamentsService {
       throw new BadRequestException('This tournament has already reached its maximum team capacity');
     }
 
-    // Default to CONFIRMED if registration fee is 0, otherwise PAYMENT_PENDING
-    const initialStatus =
-      Number(tournament.registrationFee) > 0
-        ? RegistrationStatus.PAYMENT_PENDING
-        : RegistrationStatus.CONFIRMED;
-
     const reg = this.registrationRepo.create({
       tournamentId,
       teamId: dto.teamId,
-      registrationStatus: initialStatus,
+      // Tournament entry does not collect payment; registration is confirmed immediately.
+      registrationStatus: RegistrationStatus.CONFIRMED,
     });
 
     const savedReg = await this.registrationRepo.save(reg);
@@ -280,7 +286,7 @@ export class TournamentsService {
       'New Team Registration',
       `Team "${team.teamName}" has registered for your tournament "${tournament.tournamentName}".`,
       'SYSTEM',
-    );
+    ).catch(() => undefined);
 
     return savedReg;
   }

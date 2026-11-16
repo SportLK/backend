@@ -61,6 +61,13 @@ export class TeamsController {
     return this.teamsService.searchRegisteredPlayers(search ?? '');
   }
 
+  @Get('mine')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  findMyTeams(@CurrentUser() user: AuthUser) {
+    return this.teamsService.findTeamsByManager(user.id);
+  }
+
   @Get('manager/:managerId')
   findTeamsByManager(@Param('managerId') managerId: string) {
     return this.teamsService.findTeamsByManager(managerId);

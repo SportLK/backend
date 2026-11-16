@@ -15,11 +15,16 @@ export class RoleApplicationsController {
   @Post() create(@CurrentUser() user: AuthUser, @Body() dto: CreateRoleApplicationDto) {
     return this.applications.create(user.id, dto);
   }
+  @Get('organizers') organizers() { return this.applications.listApprovedOrganizers(); }
   @Get('mine') mine(@CurrentUser() user: AuthUser) { return this.applications.listMine(user.id); }
   @Get('pending')
   @Roles('admin')
   @UseGuards(RolesGuard)
   pending() { return this.applications.listPending(); }
+  @Get('team-manager/pending')
+  @Roles('organizer')
+  @UseGuards(RolesGuard)
+  pendingTeamManagers(@CurrentUser() user: AuthUser) { return this.applications.listPendingTeamManagers(user.id); }
   @Get()
   @Roles('admin')
   @UseGuards(RolesGuard)
@@ -29,5 +34,11 @@ export class RoleApplicationsController {
   @UseGuards(RolesGuard)
   review(@Param('id') id: string, @CurrentUser() user: AuthUser, @Body() dto: ReviewRoleApplicationDto) {
     return this.applications.review(id, user.id, dto);
+  }
+  @Patch(':id/team-manager-review')
+  @Roles('organizer')
+  @UseGuards(RolesGuard)
+  reviewTeamManager(@Param('id') id: string, @CurrentUser() user: AuthUser, @Body() dto: ReviewRoleApplicationDto) {
+    return this.applications.review(id, user.id, dto, 'organizer');
   }
 }

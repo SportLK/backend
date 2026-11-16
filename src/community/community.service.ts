@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { CreateCommentDto, CreateCommunityDto, CreatePostDto } from './community.dto';
@@ -95,10 +95,23 @@ export class CommunityService {
   async createPost(authorId: string, dto: CreatePostDto) {
     return this.posts.save(this.posts.create({
       authorId,
+      headline: dto.headline?.trim() ?? '',
       body: dto.body,
       sport: dto.sport ?? null,
       communityId: dto.communityId ?? null,
     }));
+  }
+
+  async deletePost(postId: string, authorId: string) {
+    const post = await this.posts.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Post not found');
+    if (post.authorId !== authorId) throw new ForbiddenException('You can only delete your own posts');
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(CommunityComment).delete({ postId });
+      await manager.getRepository(CommunityLike).delete({ postId });
+      await manager.getRepository(CommunityPost).delete({ id: postId });
+    });
+    return { success: true, id: postId };
   }
 
   async toggleLike(postId: string, userId: string) {
