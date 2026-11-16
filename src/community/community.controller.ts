@@ -30,6 +30,9 @@ export class CommunityController {
   @Post('community/posts') createPost(@CurrentUser() user: AuthUser, @Body() dto: CreatePostDto) {
     return this.community.createPost(user.id, dto);
   }
+  @Delete('community/posts/:id') deletePost(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.community.deletePost(id, user.id);
+  }
   @Post('community/posts/:id/like') toggleLike(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.community.toggleLike(id, user.id);
   }

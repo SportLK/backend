@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_sports_interests (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT NOT NULL,
+  assigned_organizer_id BIGINT NULL,
   sport_type ENUM('CRICKET', 'FOOTBALL', 'FUTSAL', 'BADMINTON', 'BASKETBALL', 'VOLLEYBALL') NOT NULL,
   skill_level ENUM('BEGINNER', 'INTERMEDIATE', 'ADVANCED') NOT NULL DEFAULT 'BEGINNER',
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS role_applications (
   supporting_document_url TEXT NULL,
   status ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
   reviewed_by_admin_id BIGINT NULL,
+  reviewed_by_organizer_id BIGINT NULL,
   admin_feedback TEXT NULL,
   reviewed_at DATETIME NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

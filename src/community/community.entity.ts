@@ -18,6 +18,7 @@ export class CommunityPost {
   @Column({ name: 'author_id', length: 36 }) authorId: string;
   @Column({ name: 'community_id', type: 'varchar', length: 36, nullable: true }) communityId: string | null;
   @Column({ type: 'varchar', length: 80, nullable: true }) sport: string | null;
+  @Column({ type: 'varchar', length: 120, default: '' }) headline: string;
   @Column({ type: 'text' }) body: string;
   @Column({ type: 'varchar', length: 20, default: 'visible' }) status: 'visible' | 'hidden';
   @Column({ name: 'likes_count', default: 0 }) likesCount: number;

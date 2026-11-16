@@ -8,6 +8,7 @@ export class CreateCommunityDto {
 }
 
 export class CreatePostDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(120) headline?: string;
   @IsString() @MinLength(1) @MaxLength(2000) body: string;
   @IsOptional() @IsString() communityId?: string;
   @IsOptional() @IsString() @MaxLength(80) sport?: string;

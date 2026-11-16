@@ -57,6 +57,8 @@ async function initRailway() {
   await addCol('users', 'bio', 'TEXT NULL AFTER city');
   await addCol('users', 'refresh_token_hash', 'VARCHAR(64) NULL AFTER account_status');
   await addCol('users', 'sports', 'TEXT NULL AFTER refresh_token_hash');
+  await addCol('role_applications', 'reviewed_by_organizer_id', 'BIGINT NULL AFTER reviewed_by_admin_id');
+  await addCol('role_applications', 'assigned_organizer_id', 'BIGINT NULL AFTER user_id');
 
   // tournaments columns
   await addCol('tournaments', 'description', 'TEXT NULL AFTER tournament_name');
@@ -143,6 +145,7 @@ async function initRailway() {
       author_id VARCHAR(36) NOT NULL,
       community_id VARCHAR(36) NULL,
       sport VARCHAR(80) NULL,
+      headline VARCHAR(120) NOT NULL DEFAULT '',
       body TEXT NOT NULL,
       status VARCHAR(20) NOT NULL DEFAULT 'visible',
       likes_count INT NOT NULL DEFAULT 0,
@@ -192,6 +195,7 @@ async function initRailway() {
   for (const q of extraQueries) {
     await conn.query(q);
   }
+  await addCol('community_posts', 'headline', "VARCHAR(120) NOT NULL DEFAULT '' AFTER sport");
 
   const [tables] = await conn.query('SHOW TABLES;');
   console.log('--- RAILWAY SCHEMA INITIALIZATION COMPLETE ---');
