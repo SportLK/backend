@@ -41,7 +41,9 @@ import { TournamentsModule } from './tournaments/tournaments.module';
       database: process.env.DB_NAME ?? 'sportlk_db',
       entities: ALL_ENTITIES,
       autoLoadEntities: true,
-      synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      synchronize:
+        process.env.DB_SYNCHRONIZE === 'true' ||
+        (process.env.DB_SYNCHRONIZE !== 'false' && process.env.NODE_ENV !== 'production'),
       retryAttempts: 3,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     }),

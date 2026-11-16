@@ -67,7 +67,7 @@ export class CommunityService {
     });
   }
 
-  async listPosts(includeHidden = false) {
+  async listPosts(userId: string, includeHidden = false) {
     const query = this.posts.createQueryBuilder('post')
       .orderBy('post.createdAt', 'DESC')
       .limit(60);
@@ -83,9 +83,12 @@ export class CommunityService {
     });
     const userMap = new Map(users.map((u) => [u.id, u.displayName || u.fullName || u.email]));
 
+    const likedPosts = await this.likes.find({ where: { userId, postId: In(posts.map((post) => post.id)) } });
+    const likedIds = new Set(likedPosts.map((like) => like.postId));
     return posts.map((p) => ({
       ...p,
       authorName: userMap.get(p.authorId) || null,
+      liked: likedIds.has(p.id),
     }));
   }
 

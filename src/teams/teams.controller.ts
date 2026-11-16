@@ -9,6 +9,8 @@
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
@@ -20,6 +22,12 @@ import { CreateJoinRequestDto } from './dto/create-join-request.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { RespondChallengeDto } from './dto/respond-challenge.dto';
 import { SportType } from '../database/entities/user-sports-interest.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/roles.guard';
+import { Roles } from '../common/roles.decorator';
+import { CurrentUser } from '../common/current-user.decorator';
+import { AuthUser } from '../common/auth.types';
+import { CreatePublicTeamReportDto } from './dto/create-public-team-report.dto';
 
 @Controller('teams')
 export class TeamsController {
@@ -30,8 +38,11 @@ export class TeamsController {
   // =========================================================================
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.CREATED)
-  createTeam(@Body() dto: CreateTeamDto) {
+  createTeam(@CurrentUser() user: AuthUser, @Body() dto: CreateTeamDto) {
+    if (dto.managerId !== user.id) throw new ForbiddenException('A team manager can only create a team for their own account');
     return this.teamsService.createTeam(dto);
   }
 
@@ -42,6 +53,12 @@ export class TeamsController {
     @Query('search') search?: string,
   ) {
     return this.teamsService.findAllTeams(sportType, city, search);
+  }
+
+  @Get('players')
+  @UseGuards(JwtAuthGuard)
+  searchRegisteredPlayers(@Query('search') search?: string) {
+    return this.teamsService.searchRegisteredPlayers(search ?? '');
   }
 
   @Get('manager/:managerId')
@@ -55,6 +72,8 @@ export class TeamsController {
   }
 
   @Post('seed')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   seedDemoData() {
     return this.teamsService.seedDemoData();
@@ -65,8 +84,18 @@ export class TeamsController {
     return this.teamsService.findTeamById(id);
   }
 
+  @Post(':id/reports')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  createTeamReport(@Param('id') teamId: string, @CurrentUser() user: AuthUser, @Body() dto: CreatePublicTeamReportDto) {
+    return this.teamsService.createTeamReport({ ...dto, teamId, reporterId: user.id });
+  }
+
   @Patch(':id')
-  updateTeam(@Param('id') id: string, @Body() dto: UpdateTeamDto) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async updateTeam(@Param('id') id: string, @CurrentUser() user: AuthUser, @Body() dto: UpdateTeamDto) {
+    await this.teamsService.assertTeamManager(id, user.id);
     return this.teamsService.updateTeam(id, dto);
   }
 
@@ -80,22 +109,32 @@ export class TeamsController {
   }
 
   @Post(':id/members')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.CREATED)
-  addTeamMember(@Param('id') teamId: string, @Body() dto: AddTeamMemberDto) {
+  async addTeamMember(@Param('id') teamId: string, @CurrentUser() user: AuthUser, @Body() dto: AddTeamMemberDto) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.addTeamMember(teamId, dto);
   }
 
   @Patch(':id/members/:memberId')
-  updateMemberRole(
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async updateMemberRole(
     @Param('id') teamId: string,
     @Param('memberId') memberId: string,
+    @CurrentUser() user: AuthUser,
     @Body() dto: UpdateMemberRoleDto,
   ) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.updateMemberRole(teamId, memberId, dto);
   }
 
   @Delete(':id/members/:memberId')
-  removeTeamMember(@Param('id') teamId: string, @Param('memberId') memberId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async removeTeamMember(@Param('id') teamId: string, @Param('memberId') memberId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.removeTeamMember(teamId, memberId);
   }
 
@@ -104,25 +143,36 @@ export class TeamsController {
   // =========================================================================
 
   @Get(':id/join-requests')
-  getJoinRequests(@Param('id') teamId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async getJoinRequests(@Param('id') teamId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.getJoinRequests(teamId);
   }
 
   @Post(':id/join-requests')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('player')
   @HttpCode(HttpStatus.CREATED)
-  createJoinRequest(@Param('id') teamId: string, @Body() dto: CreateJoinRequestDto) {
-    return this.teamsService.createJoinRequest(teamId, dto);
+  createJoinRequest(@Param('id') teamId: string, @CurrentUser() user: AuthUser) {
+    return this.teamsService.createJoinRequest(teamId, { userId: user.id });
   }
 
   @Post(':id/join-requests/:requestId/accept')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.OK)
-  acceptJoinRequest(@Param('id') teamId: string, @Param('requestId') requestId: string) {
+  async acceptJoinRequest(@Param('id') teamId: string, @Param('requestId') requestId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.acceptJoinRequest(teamId, requestId);
   }
 
   @Post(':id/join-requests/:requestId/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.OK)
-  rejectJoinRequest(@Param('id') teamId: string, @Param('requestId') requestId: string) {
+  async rejectJoinRequest(@Param('id') teamId: string, @Param('requestId') requestId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.rejectJoinRequest(teamId, requestId);
   }
 
@@ -131,18 +181,27 @@ export class TeamsController {
   // =========================================================================
 
   @Get(':id/invitations')
-  getTeamInvitations(@Param('id') teamId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async getTeamInvitations(@Param('id') teamId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.getTeamInvitations(teamId);
   }
 
   @Post(':id/invitations')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.CREATED)
-  createInvitation(@Param('id') teamId: string, @Body() dto: CreateInvitationDto) {
+  async createInvitation(@Param('id') teamId: string, @CurrentUser() user: AuthUser, @Body() dto: CreateInvitationDto) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.createInvitation(teamId, dto);
   }
 
   @Delete(':id/invitations/:invitationId')
-  cancelInvitation(@Param('id') teamId: string, @Param('invitationId') invitationId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async cancelInvitation(@Param('id') teamId: string, @Param('invitationId') invitationId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.cancelInvitation(teamId, invitationId);
   }
 
@@ -151,28 +210,41 @@ export class TeamsController {
   // =========================================================================
 
   @Post(':id/challenges')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.CREATED)
-  createChallenge(@Param('id') challengerTeamId: string, @Body() dto: CreateChallengeDto) {
+  async createChallenge(@Param('id') challengerTeamId: string, @CurrentUser() user: AuthUser, @Body() dto: CreateChallengeDto) {
+    await this.teamsService.assertTeamManager(challengerTeamId, user.id);
     return this.teamsService.createChallenge(challengerTeamId, dto);
   }
 
   @Get(':id/challenges/received')
-  getReceivedChallenges(@Param('id') teamId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async getReceivedChallenges(@Param('id') teamId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.getReceivedChallenges(teamId);
   }
 
   @Get(':id/challenges/sent')
-  getSentChallenges(@Param('id') teamId: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
+  async getSentChallenges(@Param('id') teamId: string, @CurrentUser() user: AuthUser) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.getSentChallenges(teamId);
   }
 
   @Post(':id/challenges/:challengeId/respond')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('team_manager')
   @HttpCode(HttpStatus.OK)
-  respondToChallenge(
+  async respondToChallenge(
     @Param('id') teamId: string,
     @Param('challengeId') challengeId: string,
+    @CurrentUser() user: AuthUser,
     @Body() dto: RespondChallengeDto,
   ) {
+    await this.teamsService.assertTeamManager(teamId, user.id);
     return this.teamsService.respondToChallenge(teamId, challengeId, dto);
   }
 }

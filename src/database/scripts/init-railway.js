@@ -1,30 +1,39 @@
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 
 const config = {
-  host: 'shinkansen.proxy.rlwy.net',
-  port: 44716,
-  user: 'root',
-  password: 'JGvSqvdyfECNbWffYKcgRJSYYlhWTpro',
-  ssl: { rejectUnauthorized: false },
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'sportlk_db',
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   multipleStatements: true
 };
 
 async function initRailway() {
-  console.log('Connecting to Railway MySQL...');
+  if (!config.host || !config.user || !config.password) {
+    throw new Error('Configure DB_HOST, DB_USER, and DB_PASSWORD in backend/.env before running database initialization.');
+  }
+  console.log('Connecting to the configured MySQL database...');
   const conn = await mysql.createConnection(config);
   console.log('Connected!');
 
-  console.log('1. Creating database sportlk_db if not exists...');
-  await conn.query('CREATE DATABASE IF NOT EXISTS `sportlk_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;');
-  await conn.query('USE `sportlk_db`;');
+  console.log('1. Creating the configured database if it does not exist...');
+  const database = config.database.replace(/`/g, '``');
+  await conn.query(`CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+  await conn.query(`USE \`${database}\`;`);
 
   console.log('2. Executing init-schema.sql...');
   const initSqlPath = path.resolve(__dirname, 'init-schema.sql');
-  const initSql = fs.readFileSync(initSqlPath, 'utf8');
+  const initSql = fs.readFileSync(initSqlPath, 'utf8')
+    .replace(/^\s*CREATE DATABASE IF NOT EXISTS sportlk_db[\s\S]*?;\s*/im, '')
+    .replace(/^\s*USE sportlk_db\s*;\s*/im, '');
 
-  // Strip CREATE DATABASE / USE to be safe and execute
+  // The selected database is supplied through DB_NAME; the schema file must
+  // not switch this connection back to a hard-coded database name.
   await conn.query(initSql);
   console.log('init-schema.sql executed successfully.');
 
@@ -32,8 +41,8 @@ async function initRailway() {
   
   async function addCol(table, col, def) {
     const [rows] = await conn.query(
-      `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sportlk_db' AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
-      [table, col]
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+      [config.database, table, col]
     );
     if (rows.length === 0) {
       await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`);
@@ -65,6 +74,18 @@ async function initRailway() {
   await addCol('teams', 'suspension_notes', 'TEXT NULL AFTER suspension_duration');
   await addCol('teams', 'suspended_at', 'TIMESTAMP NULL AFTER suspension_notes');
   await addCol('teams', 'suspended_by', 'VARCHAR(100) NULL AFTER suspended_at');
+
+  // Older schemas did not persist friendly match sport; the admin filter and
+  // match statistics now use this value directly.
+  await addCol('matches', 'sport_type', "ENUM('CRICKET','FOOTBALL','FUTSAL','BADMINTON','BASKETBALL','VOLLEYBALL') NULL AFTER tournament_id");
+
+  // Expand the shared sport enum to match the API types. Existing enum values
+  // are retained, so this only allows the additional sports.
+  const sportsEnum = "ENUM('CRICKET','FOOTBALL','FUTSAL','BADMINTON','BASKETBALL','VOLLEYBALL')";
+  for (const table of ['user_sports_interests', 'teams', 'venue_facilities', 'team_challenges', 'tournaments']) {
+    await conn.query(`ALTER TABLE \`${table}\` MODIFY COLUMN sport_type ${sportsEnum} NOT NULL`);
+  }
+  await conn.query(`ALTER TABLE matches MODIFY COLUMN sport_type ${sportsEnum} NULL`);
 
   // tournament_brackets columns
   await addCol('tournament_brackets', 'round_name', 'VARCHAR(50) NULL AFTER round_number');
@@ -174,7 +195,7 @@ async function initRailway() {
 
   const [tables] = await conn.query('SHOW TABLES;');
   console.log('--- RAILWAY SCHEMA INITIALIZATION COMPLETE ---');
-  console.log(`Total tables in sportlk_db on Railway: ${tables.length}`);
+  console.log(`Total tables in ${config.database}: ${tables.length}`);
   console.log(tables.map(r => Object.values(r)[0]));
 
   await conn.end();

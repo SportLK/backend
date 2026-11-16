@@ -3,9 +3,10 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Team, TeamStatus } from '../database/entities/team.entity';
 import { TeamMember, TeamMemberRole } from '../database/entities/team-member.entity';
 import {
@@ -17,6 +18,7 @@ import { TeamChallenge, ChallengeStatus } from '../database/entities/team-challe
 import { TeamReport, TeamReportReason, TeamReportStatus } from '../database/entities/team-report.entity';
 import { User, BaseRole, ActiveWorkspace } from '../database/entities/user.entity';
 import { SportType } from '../database/entities/user-sports-interest.entity';
+import { Match } from '../database/entities/match.entity';
 
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -50,6 +52,8 @@ export class TeamsService {
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   // =========================================================================
@@ -95,6 +99,27 @@ export class TeamsService {
     }
 
     return this.findTeamById(savedTeam.id);
+  }
+
+  async assertTeamManager(teamId: string, userId: string): Promise<void> {
+    const team = await this.teamRepository.findOne({ where: { id: teamId } });
+    if (!team) throw new NotFoundException(`Team with ID ${teamId} not found`);
+    if (team.managerId !== userId) {
+      throw new ForbiddenException('Only this team’s manager can manage its roster and requests');
+    }
+  }
+
+  async searchRegisteredPlayers(search: string): Promise<Array<Pick<User, 'id' | 'fullName' | 'email' | 'city'>>> {
+    const term = search.trim();
+    if (term.length < 2) return [];
+
+    return this.userRepository.createQueryBuilder('user')
+      .select(['user.id', 'user.fullName', 'user.email', 'user.city'])
+      .where('user.accountStatus = :status', { status: 'ACTIVE' })
+      .andWhere('(user.fullName LIKE :term OR user.email LIKE :term)', { term: `%${term}%` })
+      .orderBy('user.fullName', 'ASC')
+      .take(20)
+      .getMany();
   }
 
   async findAllTeams(sportType?: SportType, city?: string, search?: string): Promise<any[]> {
@@ -576,6 +601,7 @@ export class TeamsService {
     }
 
     const teams = await query.getMany();
+    const matchStats = await this.getMatchStats(teams.map((team) => team.id));
 
     return teams.map((team) => ({
       id: team.id,
@@ -585,11 +611,11 @@ export class TeamsService {
         ? team.sportType.charAt(0) + team.sportType.slice(1).toLowerCase()
         : 'Futsal',
       sportType: team.sportType,
-      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : 'Active',
+      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : team.status === TeamStatus.INACTIVE ? 'Inactive' : 'Active',
       statusEnum: team.status,
       membersCount: team.members ? team.members.length : 0,
-      matchesPlayed: 18,
-      winsCount: 12,
+      matchesPlayed: matchStats.get(team.id)?.matchesPlayed ?? 0,
+      winsCount: matchStats.get(team.id)?.winsCount ?? 0,
       bio: team.teamBio || '',
       initials: team.teamName
         ? team.teamName
@@ -648,6 +674,8 @@ export class TeamsService {
       throw new NotFoundException(`Team with ID ${id} not found`);
     }
 
+    const matchStats = await this.getMatchStats([team.id]);
+
     return {
       id: team.id,
       name: team.teamName,
@@ -656,11 +684,11 @@ export class TeamsService {
         ? team.sportType.charAt(0) + team.sportType.slice(1).toLowerCase()
         : 'Futsal',
       sportType: team.sportType,
-      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : 'Active',
+      status: team.status === TeamStatus.SUSPENDED ? 'Suspended' : team.status === TeamStatus.INACTIVE ? 'Inactive' : 'Active',
       statusEnum: team.status,
       membersCount: team.members ? team.members.length : 0,
-      matchesPlayed: 18,
-      winsCount: 12,
+      matchesPlayed: matchStats.get(team.id)?.matchesPlayed ?? 0,
+      winsCount: matchStats.get(team.id)?.winsCount ?? 0,
       bio: team.teamBio || '',
       initials: team.teamName
         ? team.teamName
@@ -707,6 +735,27 @@ export class TeamsService {
           : undefined,
       squad: team.members ? team.members.map((m) => this.formatMember(m)) : [],
     };
+  }
+
+  private async getMatchStats(teamIds: string[]) {
+    const result = new Map<string, { matchesPlayed: number; winsCount: number }>();
+    if (!teamIds.length) return result;
+    const placeholders = teamIds.map(() => '?').join(', ');
+    const rows = await this.dataSource.query(
+      `SELECT t.id AS teamId,
+              COUNT(DISTINCT m.id) AS matchesPlayed,
+              COUNT(DISTINCT CASE WHEN m.winner_team_id = t.id THEN m.id END) AS winsCount
+       FROM teams t
+       LEFT JOIN matches m ON m.home_team_id = t.id OR m.away_team_id = t.id
+       WHERE t.id IN (${placeholders})
+       GROUP BY t.id`,
+      teamIds,
+    );
+    for (const row of rows) result.set(String(row.teamId), {
+      matchesPlayed: Number(row.matchesPlayed),
+      winsCount: Number(row.winsCount),
+    });
+    return result;
   }
 
   async suspendTeam(id: string, dto: SuspendTeamDto): Promise<any> {

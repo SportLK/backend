@@ -6,6 +6,7 @@ import { TeamInvitation } from '../database/entities/team-invitation.entity';
 import { TeamChallenge } from '../database/entities/team-challenge.entity';
 import { TeamReport } from '../database/entities/team-report.entity';
 import { User } from '../database/entities/user.entity';
+import { Match } from '../database/entities/match.entity';
 
 import { TeamsService } from './teams.service';
 import { TeamsController } from './teams.controller';
@@ -20,6 +21,7 @@ import { AdminTeamsController } from './admin-teams.controller';
       TeamChallenge,
       TeamReport,
       User,
+      Match,
     ]),
   ],
   controllers: [TeamsController, AdminTeamsController],

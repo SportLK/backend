@@ -44,13 +44,31 @@ export class RoleApplicationsService {
     return this.applications.find({ where: { userId }, order: { createdAt: 'DESC' } });
   }
 
-  listPending() {
-    return this.applications.createQueryBuilder('application')
-      .leftJoin('users', 'applicant', 'applicant.id = application.user_id')
-      .addSelect(['applicant.full_name', 'applicant.email'])
-      .where('application.status = :status', { status: ApplicationStatus.PENDING })
-      .orderBy('application.created_at', 'ASC')
-      .getMany();
+  async listPending() {
+    return this.listAll(ApplicationStatus.PENDING);
+  }
+
+  async listAll(status?: ApplicationStatus) {
+    const query = this.applications.createQueryBuilder('application')
+      .leftJoinAndSelect('application.user', 'applicant')
+      .orderBy('application.created_at', 'DESC');
+    if (status) query.where('application.status = :status', { status });
+    const rows = await query.getMany();
+    return rows.map((application) => {
+      const [organization = '', ...experience] = (application.justificationNotes ?? '').split(' | ');
+      return {
+        ...application,
+        organization,
+        experience: experience.join(' | '),
+        user: application.user ? {
+          id: application.user.id,
+          fullName: application.user.fullName,
+          displayName: application.user.displayName,
+          email: application.user.email,
+          city: application.user.city,
+        } : undefined,
+      };
+    });
   }
 
   async review(id: string, reviewerId: string, dto: ReviewRoleApplicationDto) {
